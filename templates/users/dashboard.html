@@ -1,0 +1,726 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Estāte{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Shared ── */
+  .dash-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+  .dash-header-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+  .stat-card{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:18px;min-width:0;}
+  .stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;}
+  .stat-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .stat-icon svg{width:17px;height:17px;}
+  .stat-icon.green{background:var(--green-bg);color:var(--green-text);}
+  .stat-icon.blue{background:var(--blue-bg);color:var(--blue-text);}
+  .stat-icon.amber{background:var(--amber-bg);color:var(--amber-text);}
+  .stat-icon.red{background:var(--red-bg);color:var(--red-text);}
+  .stat-icon.role{background:var(--role-color);color:#fff;}
+  .delta{font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+  .delta.up{background:var(--green-bg);color:var(--green-text);}
+  .delta.down{background:var(--red-bg);color:var(--red-text);}
+  .delta.neutral{background:var(--bg-secondary);color:var(--text-secondary);}
+  .stat-value{font-size:22px;font-weight:500;color:var(--text-primary);letter-spacing:-.5px;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .stat-label{font-size:11px;color:var(--text-secondary);margin-top:4px;}
+  .stat-bar{height:3px;border-radius:2px;background:var(--bg-secondary);margin-top:12px;overflow:hidden;}
+  .stat-bar-fill{height:100%;border-radius:2px;background:var(--role-color);}
+  .mid-row{display:grid;grid-template-columns:1fr 280px;gap:12px;margin-bottom:16px;min-width:0;}
+  .mid-row>*{min-width:0;overflow:hidden;}
+  .bot-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0;}
+  .bot-row>*{min-width:0;overflow:hidden;}
+  .stats-grid>*{min-width:0;}
+  canvas{max-width:100%!important;display:block;}
+  .card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:8px;}
+  .card-title{font-size:13px;font-weight:500;color:var(--text-primary);}
+  .card-sub{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+  .view-all{font-size:11px;color:var(--text-secondary);text-decoration:none;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+  .view-all:hover{color:var(--text-primary);}
+  .donut-wrap{position:relative;display:flex;align-items:center;justify-content:center;margin:8px 0 14px;}
+  .donut-center{position:absolute;text-align:center;pointer-events:none;}
+  .donut-pct{font-size:26px;font-weight:500;color:var(--text-primary);}
+  .donut-lbl{font-size:10px;color:var(--text-secondary);}
+  .occ-list{display:flex;flex-direction:column;gap:10px;}
+  .occ-row{display:flex;align-items:center;gap:10px;}
+  .occ-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .occ-name{font-size:12px;color:var(--text-secondary);flex:1;}
+  .occ-val{font-size:12px;font-weight:500;color:var(--text-primary);}
+  .pipeline-list{display:flex;flex-direction:column;gap:8px;}
+  .pipeline-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-secondary);border-radius:var(--radius-sm);min-width:0;}
+  .pipeline-thumb{width:36px;height:36px;border-radius:8px;background:var(--border-light);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .pipeline-thumb svg{width:16px;height:16px;color:var(--text-tertiary);opacity:.5;}
+  .pipeline-name{font-size:12px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pipeline-sub{font-size:11px;color:var(--text-secondary);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* ── TENANT-SPECIFIC ── */
+
+  /* Rent alert */
+  .rent-alert{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--amber-bg);border:0.5px solid var(--amber-text);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:16px;flex-wrap:wrap;}
+  .rent-alert-icon{width:34px;height:34px;border-radius:9px;background:var(--amber-text);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .rent-alert-icon svg{width:17px;height:17px;color:#fff;}
+  .rent-alert-title{font-size:13px;font-weight:500;color:var(--amber-text);}
+  .rent-alert-sub{font-size:11px;color:var(--amber-text);opacity:.75;margin-top:2px;}
+
+  /* Hero lease card */
+  .lease-hero{
+    background:var(--role-color);
+    border-radius:var(--radius-lg);
+    padding:22px 24px;
+    color:#fff;
+    margin-bottom:16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .lease-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05);}
+  .lease-hero::after{content:'';position:absolute;bottom:-60px;left:60%;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,0.04);}
+
+  .lease-hero-inner{position:relative;z-index:1;}
+  .lease-eyebrow{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;opacity:.55;margin-bottom:6px;}
+  .lease-title{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.2;margin-bottom:3px;}
+  .lease-addr{font-size:12px;opacity:.6;display:flex;align-items:center;gap:5px;margin-bottom:18px;}
+  .lease-addr svg{width:12px;height:12px;flex-shrink:0;}
+
+  .lease-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid rgba(255,255,255,0.12);padding-top:16px;}
+  .lease-cell{text-align:center;}
+  .lease-cell+.lease-cell{border-left:1px solid rgba(255,255,255,0.12);}
+  .lease-cell-val{font-size:17px;font-weight:500;}
+  .lease-cell-lbl{font-size:10px;opacity:.5;margin-top:2px;}
+
+  /* Lease progress */
+  .lease-progress{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.12);}
+  .lease-progress-labels{display:flex;justify-content:space-between;font-size:10px;opacity:.5;margin-bottom:6px;}
+  .lease-progress-track{height:4px;background:rgba(255,255,255,0.15);border-radius:2px;overflow:hidden;}
+  .lease-progress-fill{height:100%;border-radius:2px;background:rgba(255,255,255,0.8);transition:width .6s ease;}
+
+  /* Quick actions grid */
+  .qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+  .qa-card{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:box-shadow .15s,transform .15s;text-decoration:none;}
+  .qa-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);transform:translateY(-2px);}
+  .qa-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .qa-icon svg{width:18px;height:18px;}
+  .qa-icon.green{background:var(--green-bg);color:var(--green-text);}
+  .qa-icon.blue{background:var(--blue-bg);color:var(--blue-text);}
+  .qa-icon.amber{background:var(--amber-bg);color:var(--amber-text);}
+  .qa-icon.role{background:var(--role-color);color:#fff;}
+  .qa-label{font-size:11px;font-weight:500;color:var(--text-secondary);text-align:center;}
+
+  /* Tenant stats */
+  .t-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+
+  /* Payment timeline */
+  .pay-timeline{display:flex;flex-direction:column;gap:0;}
+  .pay-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border-light);}
+  .pay-row:last-child{border-bottom:none;}
+  .pay-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pay-icon svg{width:14px;height:14px;}
+  .pay-icon.paid{background:var(--green-bg);color:var(--green-text);}
+  .pay-icon.pending{background:var(--amber-bg);color:var(--amber-text);}
+  .pay-icon.overdue{background:var(--red-bg);color:var(--red-text);}
+  .pay-month{font-size:12px;font-weight:500;color:var(--text-primary);flex:1;}
+  .pay-date{font-size:11px;color:var(--text-secondary);width:60px;text-align:right;}
+  .pay-amt{font-size:12px;font-weight:500;color:var(--text-primary);width:60px;text-align:right;}
+
+  /* Maintenance form */
+  .req-form{display:flex;flex-direction:column;gap:10px;}
+  .req-select,.req-textarea{width:100%;padding:9px 12px;border:0.5px solid var(--border-medium);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg-secondary);color:var(--text-primary);outline:none;appearance:none;}
+  .req-select:focus,.req-textarea:focus{border-color:var(--role-color);}
+  .req-textarea{min-height:80px;resize:vertical;line-height:1.6;}
+
+  /* Open requests list */
+  .req-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+  .req-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-secondary);border-radius:var(--radius-sm);}
+  .req-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .req-dot.progress{background:var(--amber-text);}
+  .req-dot.done{background:var(--green-text);}
+  .req-dot.open{background:var(--blue-text);}
+  .req-issue{font-size:12px;font-weight:500;color:var(--text-primary);flex:1;}
+  .req-when{font-size:11px;color:var(--text-secondary);}
+
+  /* Available properties */
+  .prop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+  .prop-mini{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);overflow:hidden;transition:box-shadow .2s,transform .2s;}
+  .prop-mini:hover{box-shadow:0 6px 20px rgba(0,0,0,0.08);transform:translateY(-2px);}
+  .prop-mini-img{width:100%;height:110px;object-fit:cover;display:block;background:var(--bg-secondary);}
+  .prop-mini-ph{width:100%;height:110px;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;}
+  .prop-mini-ph svg{width:28px;height:28px;color:var(--text-tertiary);opacity:.3;}
+  .prop-mini-body{padding:12px;}
+  .prop-mini-name{font-size:12px;font-weight:500;color:var(--text-primary);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .prop-mini-addr{font-size:10px;color:var(--text-tertiary);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .prop-mini-foot{display:flex;align-items:center;justify-content:space-between;}
+  .prop-mini-rent{font-size:13px;font-weight:500;color:var(--role-color);}
+  .prop-mini-lbl{font-size:10px;color:var(--text-secondary);}
+
+  /* Section heading */
+  .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .sec-title{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text-primary);}
+  .sec-sub{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+
+  @media(max-width:1200px){.stats-grid{grid-template-columns:repeat(2,1fr);}
+    .qa-grid{grid-template-columns:repeat(2,1fr);}
+    .prop-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media(max-width:1000px){.mid-row{grid-template-columns:1fr;}.bot-row{grid-template-columns:1fr;}}
+  @media(max-width:700px){
+    .stats-grid{grid-template-columns:repeat(2,1fr);}
+    .t-stats{grid-template-columns:repeat(2,1fr);}
+    .prop-grid{grid-template-columns:1fr;}
+    .qa-grid{grid-template-columns:repeat(2,1fr);}
+    .lease-row{grid-template-columns:1fr;}
+    .lease-cell+.lease-cell{border-left:none;border-top:1px solid rgba(255,255,255,0.12);padding-top:10px;margin-top:10px;}
+  }
+  @media(max-width:400px){.stats-grid{grid-template-columns:1fr;}}
+
+  .notif-wrapper {
+    position: relative;
+  }
+  
+  .notif-bell {
+    position: relative;
+    display: inline-flex;
+    padding: 8px;
+    border-radius: 10px;
+    background: #f5f5f5;
+    transition: 0.2s;
+  }
+  
+  .notif-bell:hover {
+    background: #eaeaea;
+  }
+  
+  .notif-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #ff3b30;
+    color: white;
+    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 999px;
+  }
+
+
+
+
+
+
+
+
+
+  /* --- Notification Wrapper --- */
+.notif-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- The Bell Button --- */
+.notif-bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.notif-bell svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
+/* Hover Effects */
+.notif-bell:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-medium);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.notif-bell:hover svg {
+  transform: rotate(15deg); /* Subtle wiggle on hover */
+  color: var(--role-color);
+}
+
+/* --- Notification Badge --- */
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444; /* Alert Red */
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 2px solid #ffffff; /* Contrast border against the button */
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  animation: pulse-red 2s infinite; /* Attention grabber */
+}
+
+/* --- Badge Pulse Animation --- */
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Integration for different backgrounds */
+.dash-header .notif-wrapper {
+  margin-left: auto; /* Pushes it to the right if in a flex header */
+  margin-right: 10px;
+}
+</style>
+
+<script>
+  const notifSocket = new WebSocket(
+      "ws://" + window.location.host + "/ws/notifications/"
+  );
+  
+  notifSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+  
+      let badge = document.querySelector(".notif-badge");
+  
+      if (badge) {
+          badge.innerText = parseInt(badge.innerText || 0) + 1;
+          badge.style.display = "block";
+      }
+  
+      console.log("NEW NOTIF:", data);
+  };
+  </script>
+
+
+<div class="notif-wrapper">
+  <!-- Fixed the missing quote after notifications_list' -->
+  <a href="{% url 'notifications:notifications_list' %}" class="notif-bell">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M8 1a4 4 0 00-4 4v3l-1 2h10l-1-2V5a4 4 0 00-4-4z"/>
+      <path d="M6 13a2 2 0 004 0"/>
+    </svg>
+
+    {% if unread_count > 0 %}
+      <span class="notif-badge">{{ unread_count }}</span>
+    {% endif %}
+  </a>
+</div>
+
+
+<!-- ════════════════════════
+     LANDLORD
+════════════════════════ -->
+{% if user.role == 'landlord' %}
+<div class="dash-header">
+  <div>
+    <div class="page-title">Good morning, {{ user.first_name|default:user.username }} 👋</div>
+    <div class="page-sub">Here's your portfolio overview · {% now "F Y" %}</div>
+  </div>
+  <div class="dash-header-actions">
+    <a href="{% url 'property_create' %}" class="btn-estate primary">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v12M2 8h12"/></svg>Add Property
+    </a>
+    <a href="{% url 'contract_list' %}" class="btn-estate">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4M5 12h2"/></svg>Contracts
+    </a>
+  </div>
+</div>
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon green"><svg viewBox="0 0 17 17" fill="currentColor"><path d="M8.5 1a7.5 7.5 0 100 15A7.5 7.5 0 008.5 1zm.6 3.8v3.4l2.5 2.5-.75.75L8 8.62V4.8h1.1z"/></svg></div><span class="delta up">↑ 12.5%</span></div><div class="stat-value">${{ total_revenue|default:"42,850" }}</div><div class="stat-label">Monthly revenue</div><div class="stat-bar"><div class="stat-bar-fill" style="width:72%"></div></div></div>
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon blue"><svg viewBox="0 0 17 17" fill="currentColor"><path d="M8.5 8.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 15.5a5.5 5.5 0 0111 0H3z"/></svg></div><span class="delta neutral">98% retention</span></div><div class="stat-value">{{ active_tenants|default:"128" }}</div><div class="stat-label">Active tenants</div><div class="stat-bar"><div class="stat-bar-fill" style="width:85%"></div></div></div>
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon amber"><svg viewBox="0 0 17 17" fill="currentColor"><path d="M8.5 1L1 15h15L8.5 1zm0 3.5L13 14H4L8.5 4.5zM8 8v3h1V8H8zm0 4v1.2h1V12H8z"/></svg></div><span class="delta down">4 pending</span></div><div class="stat-value">$3,120</div><div class="stat-label">Maintenance cost</div><div class="stat-bar"><div class="stat-bar-fill" style="width:30%"></div></div></div>
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon green"><svg viewBox="0 0 17 17" fill="currentColor"><path d="M2 14V6l6.5-4 6.5 4v8H2zm3-1h9V7L8.5 3.5 5 7v6zm2-4h3v4H9v-3H7v3H5v-4z"/></svg></div><span class="delta up">+ 2 new</span></div><div class="stat-value">{{ available_units|default:"14" }}</div><div class="stat-label">Available units</div><div class="stat-bar"><div class="stat-bar-fill" style="width:15%"></div></div></div>
+</div>
+<div class="mid-row">
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Financial performance</div><div class="card-sub">Revenue vs. expenses — monthly</div></div><div style="display:flex;gap:10px;align-items:center;flex-shrink:0;"><span style="font-size:11px;color:var(--text-secondary);display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--role-color);display:inline-block;"></span>Revenue</span><span style="font-size:11px;color:var(--text-secondary);display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#C93B3B;display:inline-block;"></span>Expenses</span></div></div>
+    <canvas id="revenueChart" style="max-height:220px;width:100%;"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Occupancy</div><div class="card-sub">By property type</div></div></div>
+    <div class="donut-wrap"><canvas id="donutChart" width="150" height="150" style="width:150px;height:150px;display:block;"></canvas><div class="donut-center"><div class="donut-pct">85%</div><div class="donut-lbl">occupied</div></div></div>
+    <div class="occ-list">
+      <div class="occ-row"><div class="occ-dot" style="background:var(--role-color)"></div><div class="occ-name">Residential</div><div class="occ-val">91%</div></div>
+      <div class="occ-row"><div class="occ-dot" style="background:#777"></div><div class="occ-name">Commercial</div><div class="occ-val">78%</div></div>
+      <div class="occ-row"><div class="occ-dot" style="background:#bbb"></div><div class="occ-name">Industrial</div><div class="occ-val">65%</div></div>
+      <div class="occ-row"><div class="occ-dot" style="background:#e0e0e0"></div><div class="occ-name">Vacant</div><div class="occ-val">15%</div></div>
+    </div>
+  </div>
+</div>
+<div class="bot-row">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Recent payments</div><a href="{% url 'payment_list' %}" class="view-all">View all →</a></div>
+    <table class="estate-table"><thead><tr><th>Tenant</th><th>Property</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+      <tr><td>Sara M.</td><td class="muted">Unit 4A</td><td>$1,250</td><td><span class="pill paid">Paid</span></td></tr>
+      <tr><td>James R.</td><td class="muted">Unit 7C</td><td>$980</td><td><span class="pill pending">Pending</span></td></tr>
+      <tr><td>Nora K.</td><td class="muted">Unit 2B</td><td>$2,100</td><td><span class="pill overdue">Overdue</span></td></tr>
+    </tbody></table>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Maintenance requests</div><a href="#" class="view-all">View all →</a></div>
+    <table class="estate-table"><thead><tr><th>Issue</th><th>Unit</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+      <tr><td>Plumbing leak</td><td class="muted">3A</td><td style="color:var(--red-text)">High</td><td><span class="pill progress">In progress</span></td></tr>
+      <tr><td>AC broken</td><td class="muted">9B</td><td style="color:var(--red-text)">High</td><td><span class="pill open">Open</span></td></tr>
+      <tr><td>Door lock</td><td class="muted">6C</td><td class="muted">Med</td><td><span class="pill done">Done</span></td></tr>
+    </tbody></table>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ════════════════════════
+     AGENT
+════════════════════════ -->
+{% if user.role == 'agent' %}
+<div class="dash-header">
+  <div>
+    <div class="page-title">Hey, {{ user.first_name|default:user.username }} 👋</div>
+    <div class="page-sub">Your listings & commissions · {% now "F Y" %}</div>
+  </div>
+  <div class="dash-header-actions">
+    <a href="{% url 'property_create' %}" class="btn-estate primary">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v12M2 8h12"/></svg>New Listing
+    </a>
+    <a href="{% url 'contract_create' %}" class="btn-estate">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>New Contract
+    </a>
+  </div>
+</div>
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon role"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg></div><span class="delta up">↑ 3 this month</span></div><div class="stat-value">18</div><div class="stat-label">Active listings</div><div class="stat-bar"><div class="stat-bar-fill" style="width:65%"></div></div></div>
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon green"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm.5 3.5v3.29l2.35 2.35-.7.71L7.5 8.21V4.5h1z"/></svg></div><span class="delta up">↑ $1,200</span></div><div class="stat-value">$8,400</div><div class="stat-label">Commission this month</div><div class="stat-bar"><div class="stat-bar-fill" style="width:58%"></div></div></div>
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon blue"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg></div><span class="delta neutral">2 new leads</span></div><div class="stat-value">34</div><div class="stat-label">Clients managed</div><div class="stat-bar"><div class="stat-bar-fill" style="width:75%"></div></div></div>
+  <div class="stat-card"><div class="stat-top"><div class="stat-icon amber"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M8 5v4M8 11v.5"/></svg></div><span class="delta down">3 pending</span></div><div class="stat-value">{{ active_contracts|default:"5" }}</div><div class="stat-label">Active contracts</div><div class="stat-bar"><div class="stat-bar-fill" style="width:40%"></div></div></div>
+</div>
+<div class="mid-row">
+  <div class="card"><div class="card-header"><div><div class="card-title">Commission performance</div><div class="card-sub">Last 6 months</div></div></div><canvas id="revenueChart" style="max-height:220px;width:100%;"></canvas></div>
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Active pipeline</div><div class="card-sub">Deals in progress</div></div><a href="{% url 'contract_list' %}" class="view-all">All →</a></div>
+    <div class="pipeline-list">
+      <div class="pipeline-item"><div class="pipeline-thumb"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg></div><div style="flex:1;min-width:0;"><div class="pipeline-name">Sunset Apt 4A</div><div class="pipeline-sub">Showing scheduled</div></div><span class="pill progress" style="flex-shrink:0;">Viewing</span></div>
+      <div class="pipeline-item"><div class="pipeline-thumb"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg></div><div style="flex:1;min-width:0;"><div class="pipeline-name">Atlas Tower 12B</div><div class="pipeline-sub">Offer received · $2,200/mo</div></div><span class="pill open" style="flex-shrink:0;">Offer</span></div>
+      <div class="pipeline-item"><div class="pipeline-thumb"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg></div><div style="flex:1;min-width:0;"><div class="pipeline-name">Marina Villa 3</div><div class="pipeline-sub">Contract signing</div></div><span class="pill pending" style="flex-shrink:0;">Signing</span></div>
+      <div class="pipeline-item"><div class="pipeline-thumb"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg></div><div style="flex:1;min-width:0;"><div class="pipeline-name">Green Residences</div><div class="pipeline-sub">Lease signed</div></div><span class="pill done" style="flex-shrink:0;">Closed</span></div>
+    </div>
+  </div>
+</div>
+<div class="bot-row">
+  <div class="card"><div class="card-header"><div class="card-title">My listings</div><a href="{% url 'property_list' %}" class="view-all">View all →</a></div><table class="estate-table"><thead><tr><th>Property</th><th>Rent/mo</th><th>Status</th></tr></thead><tbody><tr><td>Sunset Apt 4A</td><td>$1,200</td><td><span class="pill open">Available</span></td></tr><tr><td>Atlas Tower 12B</td><td>$2,200</td><td><span class="pill pending">Offer</span></td></tr><tr><td>Marina Villa 3</td><td>$3,500</td><td><span class="pill progress">Signing</span></td></tr><tr><td>Green Residence</td><td>$950</td><td><span class="pill done">Leased</span></td></tr></tbody></table></div>
+  <div class="card"><div class="card-header"><div class="card-title">Recent contracts</div><a href="{% url 'contract_list' %}" class="view-all">View all →</a></div><table class="estate-table"><thead><tr><th>Tenant</th><th>Property</th><th>Status</th></tr></thead><tbody><tr><td>Sara M.</td><td class="muted">Sunset 4A</td><td><span class="pill done">Active</span></td></tr><tr><td>James R.</td><td class="muted">Atlas 12B</td><td><span class="pill pending">Pending</span></td></tr></tbody></table></div>
+</div>
+{% endif %}
+
+
+<!-- ════════════════════════
+     TENANT — PRO REDESIGN
+════════════════════════ -->
+{% if user.role == 'tenant' %}
+
+<!-- Header -->
+<div class="dash-header">
+  <div>
+    <div class="page-title">Welcome home, {{ user.first_name|default:user.username }} 🏠</div>
+    <div class="page-sub">{% now "l, F j, Y" %} · Everything you need in one place</div>
+  </div>
+  <a href="{% url 'real_estate_messages:inbox' %}" class="btn-estate">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg>
+    Contact landlord
+  </a>
+</div>
+
+<!-- Rent due alert -->
+{% if days_until_rent is not None and days_until_rent <= 7 %}
+<div class="rent-alert">
+  <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+    <div class="rent-alert-icon">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M1 7.5h14"/></svg>
+    </div>
+    <div>
+      <div class="rent-alert-title">
+        Rent due {% if days_until_rent == 0 %}today{% elif days_until_rent == 1 %}tomorrow{% else %}in {{ days_until_rent }} days{% endif %} — ${{ tenant_contract.rent_amount|default:"1,250" }}
+      </div>
+      <div class="rent-alert-sub">{{ tenant_contract.property.title|default:"Your unit" }}</div>
+    </div>
+  </div>
+  <a href="#" class="btn-estate primary" style="flex-shrink:0;">Pay now →</a>
+</div>
+{% endif %}
+
+<!-- ── Lease hero card ── -->
+<div class="lease-hero">
+  <div class="lease-hero-inner">
+
+    {% if tenant_contract %}
+
+      <div class="lease-eyebrow">Current lease</div>
+
+      <div class="lease-title">
+        {{ tenant_contract.property.title }}
+      </div>
+
+      <div class="lease-addr">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M8 1a5 5 0 00-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 00-5-5z"/>
+          <circle cx="8" cy="6" r="2"/>
+        </svg>
+        {{ tenant_contract.property.address }}
+      </div>
+
+      <div class="lease-row">
+        <div class="lease-cell">
+          <div class="lease-cell-val">${{ tenant_contract.rent_amount }}</div>
+          <div class="lease-cell-lbl">Monthly rent</div>
+        </div>
+
+        <div class="lease-cell">
+          <div class="lease-cell-val">{{ tenant_contract.start_date|date:"M j, Y" }}</div>
+          <div class="lease-cell-lbl">Lease start</div>
+        </div>
+
+        <div class="lease-cell">
+          <div class="lease-cell-val">{{ tenant_contract.end_date|date:"M j, Y" }}</div>
+          <div class="lease-cell-lbl">Lease end</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="lease-progress">
+        <div class="lease-progress-labels">
+          <span>Start</span>
+          <span>
+            {{ tenant_contract.lease_progress_pct }}% complete ·
+            {{ tenant_contract.days_remaining }} days left
+          </span>
+          <span>End</span>
+        </div>
+
+        <div class="lease-progress-track">
+          <div class="lease-progress-fill"
+               style="width: {{ tenant_contract.lease_progress_pct }}%;">
+          </div>
+        </div>
+      </div>
+
+    {% else %}
+
+      <div class="lease-eyebrow">No active lease</div>
+      <div class="lease-title">You don’t have a contract yet</div>
+
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ── Quick actions ── -->
+<div class="qa-grid">
+  <a href="#" class="qa-card">
+    <div class="qa-icon green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M1 7.5h14M5 10.5h2"/></svg></div>
+    <span class="qa-label">Pay Rent</span>
+  </a>
+  <a href="#" class="qa-card">
+    <div class="qa-icon amber"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg></div>
+    <span class="qa-label">Report Issue</span>
+  </a>
+  <a href="{% url 'real_estate_messages:inbox' %}" class="qa-card">
+    <div class="qa-icon blue"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg></div>
+    <span class="qa-label">Message</span>
+  </a>
+  <a href="{% url 'community' %}" class="qa-card">
+    <div class="qa-icon role"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg></div>
+    <span class="qa-label">Community</span>
+  </a>
+</div>
+
+<!-- ── Tenant stats ── -->
+<div class="t-stats">
+  <div class="stat-card">
+    <div class="stat-top"><div class="stat-icon green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 3L6 10l-3-3"/></svg></div><span class="delta up">on time</span></div>
+    <div class="stat-value">{{ payments_made|default:"0" }}</div>
+    <div class="stat-label">Payments made</div>
+    <div class="stat-bar"><div class="stat-bar-fill" style="width:80%"></div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-top"><div class="stat-icon amber"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg></div><span class="delta neutral">{{ open_requests|default:"0" }} open</span></div>
+    <div class="stat-value">{{ total_requests|default:"0" }}</div>
+    <div class="stat-label">Maintenance requests</div>
+    <div class="stat-bar"><div class="stat-bar-fill" style="width:20%"></div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-top"><div class="stat-icon blue"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M5 1v4M11 1v4"/></svg></div><span class="delta neutral" id="monthsLeftBadge">— left</span></div>
+    <div class="stat-value">{{ tenant_contract.start_date|date:"M Y"|default:"—" }}</div>
+    <div class="stat-label">Lease started</div>
+    <div class="stat-bar"><div class="stat-bar-fill" id="leaseStatBar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- ── Bottom: payments + maintenance ── -->
+<div class="bot-row">
+
+  <!-- Payment history -->
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Payment history</div><div class="card-sub">Your rent record</div></div>
+      <a href="{% url 'payment_list' %}" class="view-all">View all →</a>
+    </div>
+    <div class="pay-timeline">
+      {% for payment in recent_payments %}
+      <div class="pay-row">
+        <div class="pay-icon {{ payment.status }}">
+          {% if payment.status == 'paid' %}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg>
+          {% elif payment.status == 'overdue' %}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 5v4M8 11v.5"/></svg>
+          {% else %}<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+          {% endif %}
+        </div>
+        <div class="pay-month">{{ payment.month }}</div>
+        <div class="pay-date">{{ payment.paid_date|date:"M j"|default:"—" }}</div>
+        <div class="pay-amt">${{ payment.amount }}</div>
+        <span class="pill {{ payment.status }}">{{ payment.get_status_display }}</span>
+      </div>
+      {% empty %}
+      <!-- Fallback static rows -->
+      <div class="pay-row">
+        <div class="pay-icon pending"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg></div>
+        <div class="pay-month">{% now "F Y" %}</div><div class="pay-date">Due</div><div class="pay-amt">$1,250</div>
+        <span class="pill pending">Pending</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Maintenance -->
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Submit a request</div><div class="card-sub">Report an issue in your unit</div></div>
+    </div>
+    <form class="req-form" method="post" action="#">
+      {% csrf_token %}
+      <select class="req-select" name="category" required>
+        <option value="">Select issue type…</option>
+        <option>Plumbing</option>
+        <option>Electrical</option>
+        <option>HVAC / AC</option>
+        <option>Appliance</option>
+        <option>Structural</option>
+        <option>Noise complaint</option>
+        <option>Other</option>
+      </select>
+      <textarea class="req-textarea" name="description" placeholder="Describe the issue in detail…" required></textarea>
+      <button type="submit" class="btn-estate primary" style="width:100%;justify-content:center;">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h10M8 4l4 4-4 4"/></svg>
+        Submit request
+      </button>
+    </form>
+
+    <div class="req-list">
+      <div class="card-title" style="margin-bottom:6px;">My open requests</div>
+      {% for req in my_requests %}
+      <div class="req-item">
+        <div class="req-dot {{ req.status }}"></div>
+        <div class="req-issue">{{ req.issue }}</div>
+        <div class="req-when">{{ req.submitted|date:"M j" }}</div>
+        <span class="pill {{ req.status }}" style="flex-shrink:0;">{{ req.status|capfirst }}</span>
+      </div>
+      {% empty %}
+      <div class="req-item"><div class="req-dot progress"></div><div class="req-issue">AC not cooling</div><div class="req-when">Apr 18</div><span class="pill progress" style="flex-shrink:0;">In progress</span></div>
+      <div class="req-item"><div class="req-dot done"></div><div class="req-issue">Leaking faucet</div><div class="req-when">Apr 10</div><span class="pill done" style="flex-shrink:0;">Done</span></div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Available properties ── -->
+{% if available_properties %}
+<div style="margin-top:24px;">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Explore available properties</div><div class="sec-sub">Other units you might be interested in</div></div>
+    <a href="{% url 'property_list' %}" class="view-all">See all →</a>
+  </div>
+  <div class="prop-grid">
+    {% for prop in available_properties %}
+    <div class="prop-mini">
+      {% if prop.image %}<img src="{{ prop.image.url }}" alt="{{ prop.title }}" class="prop-mini-img"/>
+      {% else %}<div class="prop-mini-ph"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg></div>{% endif %}
+      <div class="prop-mini-body">
+        <div class="prop-mini-name">{{ prop.title }}</div>
+        <div class="prop-mini-addr">{{ prop.address }}</div>
+        <div class="prop-mini-foot">
+          <div><div class="prop-mini-rent">${{ prop.monthly_rent }}/mo</div><div class="prop-mini-lbl">{{ prop.get_property_type_display }}</div></div>
+          {% if prop.owner %}
+          <a href="{% url 'real_estate_messages:start_conversation' prop.owner.id %}" class="btn-estate primary" style="padding:5px 12px;font-size:11px;">Enquire</a>
+          {% else %}
+          <a href="{% url 'real_estate_messages:inbox' %}" class="btn-estate primary" style="padding:5px 12px;font-size:11px;">Contact</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+<!-- END TENANT -->
+
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  const isDark     = () => document.documentElement.getAttribute('data-theme') === 'dark';
+  const role       = document.body.getAttribute('data-role');
+  const roleColors = { landlord:'#1A1A1A', agent:'#185FA5', tenant:'#3B6D11' };
+  const roleColor  = roleColors[role] || '#1A1A1A';
+  const gridColor  = () => isDark() ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+  const textColor  = () => isDark() ? '#777' : '#A9A8A5';
+
+  const chartEl = document.getElementById('revenueChart');
+  if (chartEl) {
+    const labels      = ['Nov','Dec','Jan','Feb','Mar','Apr'];
+    const primaryData = role === 'agent' ? [5200,6800,5900,7400,6200,8400] : [38000,41000,36000,43000,39000,42850];
+    const secData     = role === 'agent' ? null : [22000,24000,20000,27000,23000,24500];
+    const datasets = [{ label: role==='agent'?'Commission':'Revenue', data:primaryData, backgroundColor:roleColor, borderRadius:6, barThickness:20, order:2 }];
+    if (secData) datasets.push({ label:'Expenses', data:secData, type:'line', borderColor:'#C93B3B', backgroundColor:'rgba(201,59,59,0.07)', tension:0.4, pointRadius:3, pointBackgroundColor:'#C93B3B', fill:true, borderWidth:2, order:1 });
+    new Chart(chartEl, { type:'bar', data:{ labels, datasets }, options:{ responsive:true, maintainAspectRatio:true, plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false} }, scales:{ x:{grid:{display:false},ticks:{font:{size:11},color:textColor()}}, y:{grid:{color:gridColor()},border:{display:false},ticks:{font:{size:11},color:textColor(),callback:v=>'$'+(v/1000).toFixed(role==='agent'?1:0)+'k'}} } } });
+  }
+
+  const donutEl = document.getElementById('donutChart');
+  if (donutEl) new Chart(donutEl, { type:'doughnut', data:{ labels:['Residential','Commercial','Industrial','Vacant'], datasets:[{data:[52,24,9,15],backgroundColor:[roleColor,'#777','#C0C0C0','#E8E7E3'],borderWidth:0,cutout:'78%'}] }, options:{ responsive:false, plugins:{legend:{display:false}} } });
+
+  /* ── Tenant lease countdown ── */
+  if (role === 'tenant') {
+    const startStr = "{{ tenant_contract.start_date|date:'Y-m-d'|default:'2025-01-01' }}";
+    const endStr   = "{{ tenant_contract.end_date|date:'Y-m-d'|default:'2025-12-31' }}";
+    const start = new Date(startStr);
+    const end   = new Date(endStr);
+    const today = new Date();
+    const total   = end - start;
+    const elapsed = today - start;
+    const pct      = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+    const daysLeft = Math.max(0, Math.round((end - today) / (1000*60*60*24)));
+    const months   = Math.round(daysLeft / 30);
+
+    const fill  = document.getElementById('leaseFill');
+    const pctEl = document.getElementById('leasePercent');
+    const dlEl  = document.getElementById('daysLeft');
+    const mbEl  = document.getElementById('monthsLeftBadge');
+    const sbEl  = document.getElementById('leaseStatBar');
+
+    if (fill)  fill.style.width  = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '% complete · ';
+    if (dlEl)  dlEl.textContent  = daysLeft + ' days left';
+    if (mbEl)  mbEl.textContent  = months + ' month' + (months!==1?'s':'') + ' left';
+    if (sbEl)  sbEl.style.width  = pct + '%';
+  }
+</script>
+{% endblock %}
+{% endblock %}

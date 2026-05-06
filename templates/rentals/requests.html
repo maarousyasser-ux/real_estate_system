@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Rental Requests{% endblock %}
+
+{% block content %}
+
+<style>
+.requests-wrap {
+  max-width: 1000px;
+  margin: auto;
+}
+
+.req-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.req-info h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.req-info p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.req-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-accept {
+  background: #22c55e;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-reject {
+  background: #ef4444;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.empty {
+  text-align: center;
+  color: #777;
+  padding: 40px;
+}
+</style>
+
+<div class="requests-wrap">
+
+  <h2>Rental Requests</h2>
+  <p style="color:#666;">Manage tenant requests for your properties</p>
+
+  {% for r in requests %}
+    <div class="req-card">
+
+      <div class="req-info">
+        <h4>{{ r.tenant.username }}</h4>
+        <p>
+          wants to rent <strong>{{ r.property.title }}</strong>
+        </p>
+        <p style="font-size:11px;">
+          {{ r.created_at|date:"Y-m-d H:i" }}
+        </p>
+      </div>
+
+      <div class="req-actions">
+
+        <!-- APPROVE -->
+        <form method="POST" action="{% url 'rentals:approve_request' r.id %}">
+          {% csrf_token %}
+          <button class="btn-accept">Approve</button>
+        </form>
+
+        <!-- REJECT -->
+        <form method="POST" action="{% url 'rentals:reject_request' r.id %}">
+          {% csrf_token %}
+          <button class="btn-reject">Reject</button>
+        </form>
+
+      </div>
+
+    </div>
+
+  {% empty %}
+    <div class="empty">
+      No rental requests yet.
+    </div>
+  {% endfor %}
+
+</div>
+
+{% endblock %}

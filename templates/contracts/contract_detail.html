@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Contract Detail{% endblock %}
+
+{% block content %}
+<style>
+  .card {
+    max-width: 800px;
+    margin: auto;
+    background: var(--bg-card);
+    border: 0.5px solid var(--border-light);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+  }
+
+  .row {
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+
+  .label {
+    font-weight: 600;
+    color: #666;
+  }
+
+  .value {
+    color: #222;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #eee;
+    font-size: 12px;
+  }
+
+  .actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-approve {
+    background: green;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+
+  .btn-decline {
+    background: red;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+  }
+</style>
+
+<div class="card">
+  <div class="title">Contract #{{ contract.id }}</div>
+
+  <div class="row">
+    <span class="label">Property:</span>
+    <span class="value">{{ contract.property }}</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Tenant:</span>
+    <span class="value">{{ contract.tenant }}</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Rent:</span>
+    <span class="value">{{ contract.rent_amount }}</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Deposit:</span>
+    <span class="value">{{ contract.deposit }}</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Start:</span>
+    <span class="value">{{ contract.start_date }}</span>
+  </div>
+
+  <div class="row">
+    <span class="label">End:</span>
+    <span class="value">{{ contract.end_date }}</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Status:</span>
+    <span class="badge">{{ contract.status }}</span>
+  </div>
+
+  <div class="row">
+    <span class="label">Notes:</span>
+    <span class="value">{{ contract.notes }}</span>
+  </div>
+
+  <!-- 🔥 TENANT ACTIONS ONLY -->
+  {% if is_tenant_owner and contract.status == "pending" %}
+  <div class="actions">
+    <a href="{% url 'contract_approve' contract.id %}" class="btn-approve">
+      Approve Contract
+    </a>
+
+    <a href="{% url 'contract_decline' contract.id %}" class="btn-decline">
+      Decline
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

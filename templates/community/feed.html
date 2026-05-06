@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Feed{% endblock %}
+
+{% block content %}
+
+<!-- Compose Box -->
+<div class="compose-box">
+  <form method="post" action="{% url 'community:create_post' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="compose-input-area">
+      {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" class="post-author-avatar" alt="" />
+      {% else %}
+        <div class="post-avatar-placeholder bg-role-{{ profile.role }}">
+          {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}{% if not request.user.first_name %}{{ request.user.username|slice:":2"|upper }}{% endif %}
+        </div>
+      {% endif %}
+      <div class="flex-grow-1">
+        {{ post_form.content }}
+      </div>
+    </div>
+    <div class="compose-footer">
+      <div class="d-flex align-items-center gap-2">
+        {{ post_form.post_type }}
+        <label class="btn btn-sm btn-light rounded-pill mb-0" style="cursor:pointer;">
+          <i class="bi bi-image text-primary"></i>
+          {{ post_form.image }}
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill fw-600">
+        <i class="bi bi-send-fill me-1"></i>Post
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Filter Tabs -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a href="{% url 'community:feed' %}" class="btn btn-sm rounded-pill {% if not active_type %}btn-primary{% else %}btn-light{% endif %}">
+    All
+  </a>
+  {% for value, label in post_types %}
+  <a href="{% url 'community:feed' %}?type={{ value }}" class="btn btn-sm rounded-pill {% if active_type == value %}btn-primary{% else %}btn-light{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Posts -->
+{% for post in posts %}
+<div class="ec-card" id="post-{{ post.id }}">
+  <div class="ec-card-body pb-1">
+    <!-- Author row -->
+    <div class="d-flex align-items-start gap-3 mb-3">
+      <a href="{% url 'community:profile' username=post.author.user.username %}">
+        {% if post.author.avatar %}
+          <img src="{{ post.author.avatar.url }}" class="post-author-avatar" alt="" />
+        {% else %}
+          <div class="post-avatar-placeholder bg-role-{{ post.author.role }}">
+            {{ post.author.user.first_name|first|upper }}{{ post.author.user.last_name|first|upper }}{% if not post.author.user.first_name %}{{ post.author.user.username|slice:":2"|upper }}{% endif %}
+          </div>
+        {% endif %}
+      </a>
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <a href="{% url 'community:profile' username=post.author.user.username %}" class="fw-600 text-dark text-decoration-none">
+            {{ post.author.user.get_full_name|default:post.author.user.username }}
+          </a>
+          {% if post.author.verified %}
+            <i class="bi bi-patch-check-fill text-primary" title="Verified"></i>
+          {% endif %}
+          <span class="role-pill role-{{ post.author.role }}">
+            <i class="{{ post.author.role_icon }}"></i> {{ post.author.get_role_display }}
+          </span>
+          <span class="badge bg-{{ post.type_color }} bg-opacity-10 text-{{ post.type_color }} rounded-pill" style="font-size:10px;">
+            <i class="{{ post.type_icon }}"></i> {{ post.get_post_type_display }}
+          </span>
+          {% if post.is_pinned %}
+            <span class="badge bg-warning text-dark rounded-pill" style="font-size:10px;"><i class="bi bi-pin-fill"></i> Pinned</span>
+          {% endif %}
+        </div>
+        <div class="text-muted-sm mt-1">{{ post.author.location }} · {{ post.created_at|timesince }} ago</div>
+      </div>
+      {% if post.author == profile %}
+      <div class="dropdown">
+        <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown">
+          <i class="bi bi-three-dots"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <a class="dropdown-item text-danger" href="{% url 'community:delete_post' pk=post.id %}"
+               onclick="return confirm('Delete this post?')">
+              <i class="bi bi-trash me-2"></i>Delete
+            </a>
+          </li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Content -->
+    <p class="mb-3" style="font-size:15px; line-height:1.6;">{{ post.content }}</p>
+
+    {% if post.image %}
+      <img src="{{ post.image.url }}" class="img-fluid rounded-3 mb-3" style="max-height:360px;width:100%;object-fit:cover;" alt="Post image" />
+    {% endif %}
+  </div>
+
+  <!-- Actions -->
+  <div class="post-actions d-flex px-2 py-1">
+    <button class="post-action-btn like-btn {% if profile in post.likes.all %}liked{% endif %}"
+            data-post-id="{{ post.id }}"
+            onclick="toggleLike({{ post.id }}, this)">
+      <i class="bi {% if profile in post.likes.all %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+      <span class="like-count">{{ post.like_count }}</span> Like
+    </button>
+    <a href="{% url 'community:post_detail' pk=post.id %}" class="post-action-btn">
+      <i class="bi bi-chat"></i> {{ post.comment_count }} Comment
+    </a>
+    <a href="{% url 'community:conversation' username=post.author.user.username %}" class="post-action-btn">
+      <i class="bi bi-send"></i> Message
+    </a>
+  </div>
+</div>
+{% empty %}
+<div class="ec-card">
+  <div class="ec-card-body text-center py-5">
+    <i class="bi bi-people display-3 text-muted opacity-25 d-block mb-3"></i>
+    <h6 class="fw-600">Nothing here yet</h6>
+    <p class="text-muted small mb-3">Follow some members to see their posts, or be the first to post!</p>
+    <a href="{% url 'community:members' %}" class="btn btn-primary btn-sm rounded-pill">Find Members</a>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Pagination -->
+{% if posts.has_other_pages %}
+<div class="d-flex justify-content-center gap-2 mt-3 mb-5">
+  {% if posts.has_previous %}
+    <a href="?page={{ posts.previous_page_number }}{% if active_type %}&type={{ active_type }}{% endif %}" class="btn btn-sm btn-light rounded-pill">
+      <i class="bi bi-chevron-left"></i> Prev
+    </a>
+  {% endif %}
+  <span class="btn btn-sm btn-light rounded-pill disabled">{{ posts.number }} / {{ posts.paginator.num_pages }}</span>
+  {% if posts.has_next %}
+    <a href="?page={{ posts.next_page_number }}{% if active_type %}&type={{ active_type }}{% endif %}" class="btn btn-sm btn-light rounded-pill">
+      Next <i class="bi bi-chevron-right"></i>
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block right_panel %}
+<!-- Who to follow -->
+<div class="mb-4">
+  <div class="fw-700 mb-3" style="font-size:14px;">People to Follow</div>
+  {% for member in suggested_users %}
+  <div class="member-card" id="suggest-{{ member.id }}">
+    {% if member.avatar %}
+      <img src="{{ member.avatar.url }}" class="member-card-avatar" alt="" />
+    {% else %}
+      <div class="post-avatar-placeholder bg-role-{{ member.role }} flex-shrink-0" style="width:40px;height:40px;font-size:13px;">
+        {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}{% if not member.user.first_name %}{{ member.user.username|slice:":2"|upper }}{% endif %}
+      </div>
+    {% endif %}
+    <div class="flex-grow-1 overflow-hidden">
+      <a href="{% url 'community:profile' username=member.user.username %}" class="fw-600 text-dark text-decoration-none d-block text-truncate" style="font-size:13px;">
+        {{ member.user.get_full_name|default:member.user.username }}
+      </a>
+      <span class="role-pill role-{{ member.role }}"><i class="{{ member.role_icon }}"></i> {{ member.get_role_display }}</span>
+    </div>
+    <button class="btn btn-sm btn-outline-primary rounded-pill follow-btn"
+            style="font-size:11px;padding:3px 12px;"
+            onclick="toggleFollow('{{ member.user.username }}', this)">
+      Follow
+    </button>
+  </div>
+  {% empty %}
+    <p class="text-muted small">You're following everyone!</p>
+  {% endfor %}
+  <a href="{% url 'community:members' %}" class="btn btn-sm btn-light rounded-pill w-100 mt-2" style="font-size:12px;">
+    View all members <i class="bi bi-arrow-right"></i>
+  </a>
+</div>
+
+<!-- Recent Listings -->
+<div>
+  <div class="fw-700 mb-3" style="font-size:14px;">Recent Listings</div>
+  {% for listing in recent_listings %}
+  <a href="{% url 'community:listings' %}" class="text-decoration-none">
+    <div class="d-flex gap-3 align-items-center mb-3 p-2 rounded-3" style="transition:background .15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <div style="width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#dbeafe,#e0f2fe);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🏠</div>
+      <div class="overflow-hidden">
+        <div class="fw-600 text-dark text-truncate" style="font-size:13px;">{{ listing.title }}</div>
+        <div class="text-muted-sm text-truncate">{{ listing.location }}</div>
+        <div class="fw-700 text-primary" style="font-size:13px;">${{ listing.price }}/mo</div>
+      </div>
+    </div>
+  </a>
+  {% empty %}
+    <p class="text-muted small">No listings yet.</p>
+  {% endfor %}
+  <a href="{% url 'community:listings' %}" class="btn btn-sm btn-light rounded-pill w-100 mt-1" style="font-size:12px;">
+    Browse all listings <i class="bi bi-arrow-right"></i>
+  </a>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function toggleLike(postId, btn) {
+  ajaxPost(`/community/post/${postId}/like/`, btn, (data) => {
+    const icon = btn.querySelector('i');
+    const count = btn.querySelector('.like-count');
+    icon.className = data.liked ? 'bi bi-heart-fill' : 'bi bi-heart';
+    btn.className = data.liked ? 'post-action-btn like-btn liked' : 'post-action-btn like-btn';
+    count.textContent = data.count;
+  });
+}
+
+function toggleFollow(username, btn) {
+  ajaxPost(`/community/profile/${username}/follow/`, btn, (data) => {
+    btn.textContent = data.following ? 'Following' : 'Follow';
+    btn.className = data.following
+      ? 'btn btn-sm btn-primary rounded-pill'
+      : 'btn btn-sm btn-outline-primary rounded-pill';
+    btn.style.fontSize = '11px';
+    btn.style.padding = '3px 12px';
+  });
+}
+
+// Hide file input, show icon only
+document.querySelectorAll('input[type=file]').forEach(el => {
+  el.style.display = 'none';
+});
+</script>
+{% endblock %}

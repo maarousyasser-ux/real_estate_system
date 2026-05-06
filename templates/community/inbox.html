@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h5 class="fw-700 mb-0">Messages</h5>
+  {% if unread_total > 0 %}
+    <span class="badge bg-primary rounded-pill">{{ unread_total }} unread</span>
+  {% endif %}
+</div>
+
+{% for conv in conversations %}
+{% with other=conv.participants.exclude|dictsort:"user.username"|first %}
+{% with last=conv.last_message %}
+<a href="{% url 'community:conversation' username=conv.participants.exclude|first|stringformat:"s" %}" class="text-decoration-none">
+  <!-- We'll render this simply -->
+</a>
+{% endwith %}
+{% endwith %}
+{% endfor %}
+
+<!-- Render conversations manually since template filters are limited -->
+{% if conversations %}
+  {% for conv in conversations %}
+    {% for participant in conv.participants.all %}
+      {% if participant != profile %}
+      <div class="ec-card mb-2">
+        <a href="{% url 'community:conversation' username=participant.user.username %}" class="text-decoration-none">
+          <div class="ec-card-body">
+            <div class="d-flex align-items-center gap-3">
+              {% if participant.avatar %}
+                <img src="{{ participant.avatar.url }}" class="rounded-circle" style="width:50px;height:50px;object-fit:cover;" alt="" />
+              {% else %}
+                <div class="post-avatar-placeholder bg-role-{{ participant.role }}" style="width:50px;height:50px;font-size:16px;border-radius:50%;">
+                  {{ participant.user.first_name|first|upper }}{{ participant.user.last_name|first|upper }}{% if not participant.user.first_name %}{{ participant.user.username|slice:":2"|upper }}{% endif %}
+                </div>
+              {% endif %}
+              <div class="flex-grow-1 overflow-hidden">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="fw-600 text-dark" style="font-size:14px;">
+                    {{ participant.user.get_full_name|default:participant.user.username }}
+                  </div>
+                  <div class="text-muted-sm">
+                    {% with last=conv.last_message %}
+                      {% if last %}{{ last.created_at|timesince }} ago{% endif %}
+                    {% endwith %}
+                  </div>
+                </div>
+                <span class="role-pill role-{{ participant.role }}"><i class="{{ participant.role_icon }}"></i> {{ participant.get_role_display }}</span>
+                {% with last=conv.last_message %}
+                  {% if last %}
+                    <div class="text-muted small text-truncate mt-1">{{ last.content|truncatechars:50 }}</div>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              {% with unread=conv.unread_count %}
+                {% if unread > 0 %}
+                  <span class="badge bg-primary rounded-pill">{{ unread }}</span>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+{% else %}
+  <div class="ec-card">
+    <div class="ec-card-body text-center py-5">
+      <i class="bi bi-chat-dots display-3 text-muted opacity-25 d-block mb-3"></i>
+      <h6 class="fw-600">No conversations yet</h6>
+      <p class="text-muted small mb-3">Find members and start a conversation!</p>
+      <a href="{% url 'community:members' %}" class="btn btn-primary btn-sm rounded-pill">Find Members</a>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

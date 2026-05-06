@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Members{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h5 class="fw-700 mb-0">Community Members</h5>
+  <span class="badge bg-primary rounded-pill">{{ members.paginator.count }} members</span>
+</div>
+
+<!-- Search & Filters -->
+<div class="ec-card mb-4">
+  <div class="ec-card-body">
+    <form method="get" class="d-flex gap-3 flex-wrap align-items-end">
+      <div class="flex-grow-1">
+        <label class="form-label small fw-600 text-muted">Search</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Name, location..." value="{{ search }}">
+        </div>
+      </div>
+      <div>
+        <label class="form-label small fw-600 text-muted">Role</label>
+        <select name="role" class="form-select">
+          <option value="">All Roles</option>
+          <option value="tenant" {% if role_filter == 'tenant' %}selected{% endif %}>Tenants</option>
+          <option value="landlord" {% if role_filter == 'landlord' %}selected{% endif %}>Landlords</option>
+          <option value="agent" {% if role_filter == 'agent' %}selected{% endif %}>Agents</option>
+        </select>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-primary rounded-pill px-4">Filter</button>
+        <a href="{% url 'community:members' %}" class="btn btn-light rounded-pill px-3 ms-1">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Members Grid -->
+<div class="row g-3">
+  {% for member in members %}
+  <div class="col-md-6">
+    <div class="ec-card h-100" style="border-radius:14px;">
+      <div class="ec-card-body">
+        <div class="d-flex gap-3 align-items-center mb-3">
+          {% if member.avatar %}
+            <img src="{{ member.avatar.url }}" class="rounded-circle" style="width:56px;height:56px;object-fit:cover;" alt="">
+          {% else %}
+            <div class="post-avatar-placeholder bg-role-{{ member.role }}" style="width:56px;height:56px;font-size:18px;border-radius:50%;">
+              {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}{% if not member.user.first_name %}{{ member.user.username|slice:":2"|upper }}{% endif %}
+            </div>
+          {% endif %}
+          <div class="flex-grow-1 overflow-hidden">
+            <div class="d-flex align-items-center gap-2">
+              <a href="{% url 'community:profile' username=member.user.username %}" class="fw-700 text-dark text-decoration-none text-truncate">
+                {{ member.user.get_full_name|default:member.user.username }}
+              </a>
+              {% if member.verified %}
+                <i class="bi bi-patch-check-fill text-primary" style="font-size:13px;"></i>
+              {% endif %}
+            </div>
+            <span class="role-pill role-{{ member.role }}"><i class="{{ member.role_icon }}"></i> {{ member.get_role_display }}</span>
+          </div>
+        </div>
+
+        {% if member.bio %}
+          <p class="text-muted small mb-3" style="line-height:1.5;">{{ member.bio|truncatechars:80 }}</p>
+        {% endif %}
+
+        <div class="d-flex gap-3 mb-3">
+          {% if member.location %}
+          <div class="text-muted-sm"><i class="bi bi-geo-alt me-1"></i>{{ member.location }}</div>
+          {% endif %}
+          <div class="text-muted-sm"><i class="bi bi-people me-1"></i>{{ member.follower_count }} followers</div>
+        </div>
+
+        {% if member != profile %}
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-primary rounded-pill flex-grow-1 follow-btn-card"
+                  data-username="{{ member.user.username }}"
+                  onclick="toggleFollowCard('{{ member.user.username }}', this)">
+            <i class="bi bi-person-plus me-1"></i>Follow
+          </button>
+          <a href="{% url 'community:conversation' username=member.user.username %}" class="btn btn-sm btn-light rounded-pill">
+            <i class="bi bi-chat"></i>
+          </a>
+          <a href="{% url 'community:profile' username=member.user.username %}" class="btn btn-sm btn-light rounded-pill">
+            <i class="bi bi-eye"></i>
+          </a>
+        </div>
+        {% else %}
+        <a href="{% url 'community:edit_profile' %}" class="btn btn-sm btn-light rounded-pill w-100">
+          <i class="bi bi-pencil me-1"></i>Edit Profile
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="ec-card">
+      <div class="ec-card-body text-center py-5">
+        <i class="bi bi-people display-3 text-muted opacity-25 d-block mb-3"></i>
+        <h6 class="fw-600">No members found</h6>
+        <p class="text-muted small">Try adjusting your search or filters.</p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if members.has_other_pages %}
+<div class="d-flex justify-content-center gap-2 mt-4 mb-5">
+  {% if members.has_previous %}
+    <a href="?page={{ members.previous_page_number }}&role={{ role_filter }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
+      <i class="bi bi-chevron-left"></i> Prev
+    </a>
+  {% endif %}
+  <span class="btn btn-sm btn-light rounded-pill disabled">{{ members.number }} / {{ members.paginator.num_pages }}</span>
+  {% if members.has_next %}
+    <a href="?page={{ members.next_page_number }}&role={{ role_filter }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
+      Next <i class="bi bi-chevron-right"></i>
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleFollowCard(username, btn) {
+  ajaxPost(`/community/profile/${username}/follow/`, btn, (data) => {
+    btn.innerHTML = data.following
+      ? '<i class="bi bi-person-check me-1"></i>Following'
+      : '<i class="bi bi-person-plus me-1"></i>Follow';
+    btn.className = data.following
+      ? 'btn btn-sm btn-primary rounded-pill flex-grow-1 follow-btn-card'
+      : 'btn btn-sm btn-outline-primary rounded-pill flex-grow-1 follow-btn-card';
+  });
+}
+</script>
+{% endblock %}

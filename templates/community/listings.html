@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Property Listings{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h5 class="fw-700 mb-0">Property Listings</h5>
+  {% if profile.role in 'landlord,agent' %}
+  <a href="{% url 'community:create_listing' %}" class="btn btn-primary btn-sm rounded-pill px-3">
+    <i class="bi bi-plus-lg me-1"></i>Add Listing
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="ec-card mb-4">
+  <div class="ec-card-body">
+    <form method="get" class="d-flex gap-3 flex-wrap align-items-end">
+      <div class="flex-grow-1">
+        <label class="form-label small fw-600 text-muted mb-1">Search</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Title or location..." value="{{ search }}">
+        </div>
+      </div>
+      <div>
+        <label class="form-label small fw-600 text-muted mb-1">Type</label>
+        <select name="type" class="form-select">
+          <option value="">All Types</option>
+          {% for val, label in listing_types %}
+          <option value="{{ val }}" {% if active_type == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label small fw-600 text-muted mb-1">Property</label>
+        <select name="property" class="form-select">
+          <option value="">All Properties</option>
+          {% for val, label in property_types %}
+          <option value="{{ val }}" {% if active_property == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-primary rounded-pill px-4">Filter</button>
+        <a href="{% url 'community:listings' %}" class="btn btn-light rounded-pill px-3 ms-1">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Listing Grid -->
+<div class="row g-3">
+  {% for listing in listings %}
+  <div class="col-md-6">
+    <div class="ec-card listing-card h-100">
+      <!-- Image -->
+      {% if listing.image %}
+        <img src="{{ listing.image.url }}" class="listing-img" alt="{{ listing.title }}" />
+      {% else %}
+        <div class="listing-img-placeholder">🏠</div>
+      {% endif %}
+
+      <div class="ec-card-body">
+        <!-- Badges -->
+        <div class="d-flex gap-2 mb-2 flex-wrap">
+          <span class="badge bg-{{ listing.listing_color }} rounded-pill">{{ listing.get_listing_type_display }}</span>
+          <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ listing.get_property_type_display }}</span>
+        </div>
+
+        <h6 class="fw-700 mb-1">{{ listing.title }}</h6>
+        <div class="text-muted small mb-2"><i class="bi bi-geo-alt me-1"></i>{{ listing.location }}</div>
+
+        <p class="text-muted small mb-3" style="line-height:1.5;">{{ listing.description|truncatechars:90 }}</p>
+
+        <!-- Stats row -->
+        <div class="d-flex gap-3 mb-3">
+          <div class="text-muted-sm"><i class="bi bi-door-open me-1"></i>{{ listing.bedrooms }} bd</div>
+          <div class="text-muted-sm"><i class="bi bi-water me-1"></i>{{ listing.bathrooms }} ba</div>
+          {% if listing.area_sqm %}<div class="text-muted-sm"><i class="bi bi-arrows-angle-expand me-1"></i>{{ listing.area_sqm }} m²</div>{% endif %}
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="fw-700 text-primary" style="font-size:18px;">${{ listing.price }}<span class="text-muted fw-400" style="font-size:13px;">/mo</span></div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-light rounded-circle save-btn"
+                    data-listing-id="{{ listing.id }}"
+                    onclick="toggleSave({{ listing.id }}, this)">
+              <i class="bi {% if profile in listing.saved_by.all %}bi-bookmark-fill text-primary{% else %}bi-bookmark{% endif %}"></i>
+            </button>
+            <a href="{% url 'community:conversation' username=listing.owner.user.username %}" class="btn btn-sm btn-primary rounded-pill px-3">
+              <i class="bi bi-chat me-1"></i>Contact
+            </a>
+          </div>
+        </div>
+
+        <!-- Owner -->
+        <div class="d-flex align-items-center gap-2 mt-3 pt-3" style="border-top:1px solid #f1f3f5;">
+          {% if listing.owner.avatar %}
+            <img src="{{ listing.owner.avatar.url }}" class="rounded-circle" style="width:28px;height:28px;object-fit:cover;" />
+          {% else %}
+            <div class="post-avatar-placeholder bg-role-{{ listing.owner.role }}" style="width:28px;height:28px;font-size:10px;border-radius:50%;">
+              {{ listing.owner.user.first_name|first|upper }}{{ listing.owner.user.last_name|first|upper }}{% if not listing.owner.user.first_name %}{{ listing.owner.user.username|slice:":2"|upper }}{% endif %}
+            </div>
+          {% endif %}
+          <a href="{% url 'community:profile' username=listing.owner.user.username %}" class="text-dark text-decoration-none" style="font-size:12px;font-weight:600;">
+            {{ listing.owner.user.get_full_name|default:listing.owner.user.username }}
+          </a>
+          <span class="role-pill role-{{ listing.owner.role }}" style="font-size:10px;">{{ listing.owner.get_role_display }}</span>
+          <span class="ms-auto text-muted-sm">{{ listing.created_at|timesince }} ago</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="ec-card">
+      <div class="ec-card-body text-center py-5">
+        <i class="bi bi-building display-3 text-muted opacity-25 d-block mb-3"></i>
+        <h6 class="fw-600">No listings found</h6>
+        <p class="text-muted small mb-0">Try adjusting your filters.</p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if listings.has_other_pages %}
+<div class="d-flex justify-content-center gap-2 mt-4 mb-5">
+  {% if listings.has_previous %}
+    <a href="?page={{ listings.previous_page_number }}&type={{ active_type }}&property={{ active_property }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
+      <i class="bi bi-chevron-left"></i> Prev
+    </a>
+  {% endif %}
+  <span class="btn btn-sm btn-light rounded-pill disabled">{{ listings.number }} / {{ listings.paginator.num_pages }}</span>
+  {% if listings.has_next %}
+    <a href="?page={{ listings.next_page_number }}&type={{ active_type }}&property={{ active_property }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
+      Next <i class="bi bi-chevron-right"></i>
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSave(listingId, btn) {
+  ajaxPost(`/community/listings/${listingId}/save/`, btn, (data) => {
+    const icon = btn.querySelector('i');
+    icon.className = data.saved ? 'bi bi-bookmark-fill text-primary' : 'bi bi-bookmark';
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+{% block title %}Community — Estāte{% endblock %}
+
+{% block content %}
+<style>
+  .community-layout{display:grid;grid-template-columns:1fr 290px;gap:16px;align-items:start;}
+  .feed-tabs{display:flex;gap:2px;background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:6px;margin-bottom:12px;}
+  .feed-tab{flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:500;color:var(--text-secondary);text-align:center;cursor:pointer;transition:background .15s,color .15s;border:none;background:none;font-family:'DM Sans',sans-serif;text-decoration:none;display:block;}
+  .feed-tab:hover{background:var(--bg-secondary);color:var(--text-primary);}
+  .feed-tab.active{background:var(--role-color);color:#fff;}
+  .composer{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;}
+  .composer-top{display:flex;align-items:flex-start;gap:12px;}
+  .composer-avatar{width:36px;height:36px;border-radius:50%;background:var(--role-color);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;flex-shrink:0;}
+  .composer-input{flex:1;background:var(--bg-secondary);border:0.5px solid var(--border-medium);border-radius:20px;padding:9px 16px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text-primary);outline:none;resize:none;line-height:1.5;transition:border-color .15s,background .15s;width:100%;min-height:40px;}
+  .composer-input:focus{border-color:var(--role-color);background:var(--bg-card);min-height:80px;}
+  .composer-input::placeholder{color:var(--text-tertiary);}
+  .composer-options{display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border-light);gap:8px;flex-wrap:wrap;}
+  .composer-options.open{display:flex;}
+  .composer-select{padding:7px 12px;border:0.5px solid var(--border-medium);border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg-secondary);color:var(--text-primary);outline:none;cursor:pointer;}
+  .composer-actions{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border-light);}
+  .composer-tools{display:flex;gap:4px;}
+  .composer-tool{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:500;color:var(--text-secondary);background:none;border:none;cursor:pointer;transition:background .15s;font-family:'DM Sans',sans-serif;}
+  .composer-tool:hover{background:var(--bg-secondary);color:var(--text-primary);}
+  .composer-tool svg{width:14px;height:14px;}
+  .post-card{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;transition:box-shadow .2s;}
+  .post-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.06);}
+  .post-header{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 16px 0;}
+  .post-author{display:flex;align-items:center;gap:10px;}
+
+  /* ── Clickable avatar ── */
+  .post-avatar-link{display:block;text-decoration:none;flex-shrink:0;}
+  .post-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;position:relative;transition:opacity .15s;}
+  .post-avatar-link:hover .post-avatar{opacity:.85;}
+
+  .verified-dot{position:absolute;bottom:0;right:0;width:13px;height:13px;border-radius:50%;background:var(--role-color);border:2px solid var(--bg-card);display:flex;align-items:center;justify-content:center;}
+  .verified-dot svg{width:7px;height:7px;color:#fff;}
+  .post-name{font-size:13px;font-weight:500;color:var(--text-primary);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .verified-badge{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:20px;font-size:9px;font-weight:600;background:var(--blue-bg);color:var(--blue-text);}
+  .verified-badge svg{width:8px;height:8px;}
+  .type-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:20px;font-size:9px;font-weight:600;}
+  .type-badge.announcement{background:var(--red-bg);color:var(--red-text);}
+  .type-badge.event{background:var(--green-bg);color:var(--green-text);}
+  .type-badge.maintenance{background:var(--amber-bg);color:var(--amber-text);}
+  .post-meta{font-size:11px;color:var(--text-tertiary);margin-top:2px;display:flex;align-items:center;gap:5px;}
+  .post-meta svg{width:11px;height:11px;}
+  .post-menu-wrap{position:relative;}
+  .post-menu{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-tertiary);transition:background .15s;border:none;background:none;}
+  .post-menu:hover{background:var(--bg-secondary);}
+  .post-menu svg{width:15px;height:15px;}
+  .post-dropdown{position:absolute;right:0;top:32px;background:var(--bg-card);border:0.5px solid var(--border-medium);border-radius:var(--radius-md);padding:4px;min-width:140px;z-index:10;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.1);}
+  .post-dropdown.open{display:block;}
+  .post-dropdown-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:background .15s;border:none;background:none;width:100%;font-family:'DM Sans',sans-serif;text-decoration:none;}
+  .post-dropdown-item:hover{background:var(--bg-secondary);color:var(--text-primary);}
+  .post-dropdown-item.danger{color:var(--red-text);}
+  .post-dropdown-item.danger:hover{background:var(--red-bg);}
+  .post-dropdown-item svg{width:13px;height:13px;}
+  .post-body{padding:12px 16px;font-size:13px;color:var(--text-primary);line-height:1.65;}
+  .post-image{width:100%;max-height:380px;object-fit:cover;display:block;}
+  .post-footer{display:flex;align-items:center;padding:8px 14px;border-top:0.5px solid var(--border-light);}
+  .post-action{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:background .15s,color .15s;border:none;background:none;font-family:'DM Sans',sans-serif;text-decoration:none;}
+  .post-action:hover{background:var(--bg-secondary);color:var(--text-primary);}
+  .post-action svg{width:15px;height:15px;}
+  .post-action.liked{color:var(--red-text);}
+  .post-divider{width:0.5px;height:16px;background:var(--border-light);margin:0 4px;}
+  .post-views{margin-left:auto;font-size:11px;color:var(--text-tertiary);display:flex;align-items:center;gap:4px;}
+  .post-views svg{width:12px;height:12px;}
+  .comments-section{padding:0 16px 14px;display:none;}
+  .comments-section.open{display:block;}
+  .comment-input-row{display:flex;gap:8px;margin-bottom:10px;padding-top:10px;border-top:0.5px solid var(--border-light);}
+  .comment-avatar{width:28px;height:28px;border-radius:50%;background:var(--role-color);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;flex-shrink:0;}
+  .comment-input{flex:1;background:var(--bg-secondary);border:0.5px solid var(--border-medium);border-radius:20px;padding:7px 14px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text-primary);outline:none;}
+  .comment-input:focus{border-color:var(--role-color);background:var(--bg-card);}
+  .comment-input::placeholder{color:var(--text-tertiary);}
+  .comment{display:flex;gap:8px;margin-bottom:8px;}
+  .comment-body{background:var(--bg-secondary);border-radius:12px;padding:8px 12px;flex:1;}
+  .comment-author{font-size:11px;font-weight:500;color:var(--text-primary);}
+  .comment-text{font-size:12px;color:var(--text-secondary);margin-top:2px;line-height:1.5;}
+  .comment-time{font-size:10px;color:var(--text-tertiary);margin-top:4px;}
+  .empty-feed{text-align:center;padding:48px 20px;color:var(--text-secondary);}
+  .empty-feed svg{width:40px;height:40px;opacity:.2;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;}
+  .empty-feed h3{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:4px;}
+  .sidebar-stack{display:flex;flex-direction:column;gap:12px;}
+  .side-card{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);overflow:hidden;}
+  .side-card-header{padding:14px 16px;border-bottom:0.5px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;}
+  .side-card-title{font-size:12px;font-weight:500;color:var(--text-primary);display:flex;align-items:center;gap:7px;}
+  .side-card-title svg{width:13px;height:13px;color:var(--text-secondary);}
+  .ann-item{padding:12px 16px;border-bottom:0.5px solid var(--border-light);display:flex;gap:10px;align-items:flex-start;}
+  .ann-item:last-child{border-bottom:none;}
+  .ann-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .ann-title{font-size:12px;font-weight:500;color:var(--text-primary);margin-bottom:2px;}
+  .ann-sub{font-size:11px;color:var(--text-secondary);}
+  .ann-time{font-size:10px;color:var(--text-tertiary);margin-top:3px;}
+  .online-list{padding:10px 16px;display:flex;flex-direction:column;gap:8px;}
+  .online-item{display:flex;align-items:center;gap:10px;}
+  .online-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;position:relative;}
+  .online-av::after{content:'';position:absolute;bottom:0;right:0;width:8px;height:8px;border-radius:50%;background:var(--green-text);border:2px solid var(--bg-card);}
+  .online-name{font-size:12px;font-weight:500;color:var(--text-primary);flex:1;}
+  .online-role{font-size:10px;color:var(--text-tertiary);text-transform:capitalize;}
+  .tags-wrap{padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;background:var(--bg-secondary);color:var(--text-secondary);border:0.5px solid var(--border-light);cursor:pointer;transition:background .15s,color .15s;text-decoration:none;}
+  .tag:hover,.tag.active{background:var(--role-color);color:#fff;border-color:var(--role-color);}
+
+  /* ── Message button (members sidebar) ── */
+  .msg-btn{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg-page);border:0.5px solid var(--border-medium);color:var(--text-secondary);flex-shrink:0;transition:background .15s,color .15s,border-color .15s;text-decoration:none;}
+  .msg-btn:hover{background:var(--role-color);color:#fff;border-color:var(--role-color);}
+  .msg-btn svg{width:12px;height:12px;}
+
+  @media(max-width:900px){.community-layout{grid-template-columns:1fr;}.community-sidebar{display:none;}}
+</style>
+
+<!-- Tabs -->
+<div class="feed-tabs">
+  <a href="{% url 'community' %}"                   class="feed-tab {% if not active_tab %}active{% endif %}">All posts</a>
+  <a href="?type=announcement"                       class="feed-tab {% if active_tab == 'announcement' %}active{% endif %}">Announcements</a>
+  <a href="?type=maintenance"                        class="feed-tab {% if active_tab == 'maintenance' %}active{% endif %}">Maintenance</a>
+  <a href="?type=event"                              class="feed-tab {% if active_tab == 'event' %}active{% endif %}">Events</a>
+</div>
+
+<div class="community-layout">
+<div class="feed-main">
+
+  <!-- Composer -->
+  <div class="composer">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="composer-top">
+        <div class="composer-avatar">{{ user.username|first|upper }}</div>
+        <textarea name="content" class="composer-input" id="composerInput"
+                  placeholder="What's happening in the building?" rows="1" required></textarea>
+      </div>
+      <div class="composer-options" id="composerOptions">
+        <select name="post_type" class="composer-select">
+          <option value="general">💬 General</option>
+          <option value="announcement">📢 Announcement</option>
+          <option value="maintenance">🔧 Maintenance</option>
+          <option value="event">📅 Event</option>
+        </select>
+        {% if user.role == 'landlord' or user.role == 'agent' %}
+        <select name="priority" class="composer-select">
+          <option value="low">🟢 Low priority</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="high">🔴 High priority</option>
+        </select>
+        {% endif %}
+        <label class="composer-tool" style="cursor:pointer;">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><circle cx="5.5" cy="7" r="1.5"/><path d="M1 11l4-3 3 3 2-2 5 4"/></svg>
+          Photo
+          <input type="file" name="image" accept="image/*" style="display:none;"/>
+        </label>
+      </div>
+      <div class="composer-actions">
+        <div class="composer-tools">
+          <button type="button" class="composer-tool" onclick="document.getElementById('composerOptions').classList.toggle('open')">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg>
+            Options
+          </button>
+        </div>
+        <button type="submit" class="btn-estate primary" style="padding:7px 18px;font-size:12px;">Post</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Posts -->
+  {% for post in posts %}
+  <div class="post-card" id="post-{{ post.id }}">
+    <div class="post-header">
+      <div class="post-author">
+
+        <!-- ✅ CHANGE 1: Avatar is now a link to start a conversation -->
+        {% if post.author != user %}
+        <a href="{% url 'start_conversation' post.author.id %}"
+           class="post-avatar-link"
+           title="Message {{ post.author.get_full_name|default:post.author.username }}">
+          <div class="post-avatar" style="background:{% if post.author.role == 'landlord' %}#1A1A1A{% elif post.author.role == 'agent' %}#185FA5{% else %}#3B6D11{% endif %};">
+            {{ post.author.username|first|upper }}{% if post.author.last_name %}{{ post.author.last_name|first|upper }}{% endif %}
+            {% if post.author.role == 'landlord' or post.author.role == 'agent' %}
+            <div class="verified-dot"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 4l1.5 2 3-4"/></svg></div>
+            {% endif %}
+          </div>
+        </a>
+        {% else %}
+        <div class="post-avatar" style="background:{% if post.author.role == 'landlord' %}#1A1A1A{% elif post.author.role == 'agent' %}#185FA5{% else %}#3B6D11{% endif %};">
+          {{ post.author.username|first|upper }}{% if post.author.last_name %}{{ post.author.last_name|first|upper }}{% endif %}
+          {% if post.author.role == 'landlord' or post.author.role == 'agent' %}
+          <div class="verified-dot"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 4l1.5 2 3-4"/></svg></div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div>
+          <div class="post-name">
+            {{ post.author.get_full_name|default:post.author.username }}
+            {% if post.author.role == 'landlord' or post.author.role == 'agent' %}
+            <span class="verified-badge"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 4l1.5 2 3-4"/></svg>{% if post.author.role == 'landlord' %}OWNER{% else %}AGENT{% endif %}</span>
+            {% endif %}
+            {% if post.post_type != 'general' %}
+            <span class="type-badge {{ post.post_type }}">{% if post.post_type == 'announcement' %}📢{% elif post.post_type == 'event' %}📅{% else %}🔧{% endif %} {{ post.get_post_type_display }}</span>
+            {% endif %}
+          </div>
+          <div class="post-meta">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="5"/><path d="M6 3v3l2 2"/></svg>
+            {{ post.created_at|timesince }} ago{% if post.is_pinned %} · 📌{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="post-menu-wrap">
+        <button class="post-menu" onclick="toggleMenu({{ post.id }})">
+          <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="13" r="1.2"/></svg>
+        </button>
+        <div class="post-dropdown" id="menu-{{ post.id }}">
+
+          <!-- ✅ CHANGE 2: Message option in the post dropdown menu -->
+          {% if post.author != user %}
+          <a href="{% url 'start_conversation' post.author.id %}" class="post-dropdown-item">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg>
+            Message
+          </a>
+          {% endif %}
+
+          {% if post.author == user or user.role == 'landlord' or user.role == 'agent' %}
+          <button class="post-dropdown-item danger" onclick="deletePost({{ post.id }})">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/></svg>Delete
+          </button>
+          {% endif %}
+          <button class="post-dropdown-item" onclick="copyLink({{ post.id }})">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 10l4-4M9 5h2a2 2 0 010 4h-1M7 11H5a2 2 0 010-4h1"/></svg>Copy link
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-body">{{ post.content }}</div>
+
+    {% if post.image %}
+    <img src="{{ post.image.url }}" alt="" class="post-image"/>
+    {% endif %}
+
+    <div class="post-footer">
+      <button class="post-action {% if post.id in post_ids_liked %}liked{% endif %}"
+              id="like-btn-{{ post.id }}" onclick="toggleLike({{ post.id }}, this)">
+        <svg viewBox="0 0 16 16"
+             fill="{% if post.id in post_ids_liked %}var(--red-text){% else %}none{% endif %}"
+             stroke="{% if post.id in post_ids_liked %}var(--red-text){% else %}currentColor{% endif %}"
+             stroke-width="1.5">
+          <path d="M8 13.5S1.5 9.5 1.5 5a3.5 3.5 0 017 0 3.5 3.5 0 017 0c0 4.5-6.5 8.5-6.5 8.5z"/>
+        </svg>
+        <span id="like-count-{{ post.id }}">{{ post.like_count }}</span>
+      </button>
+      <div class="post-divider"></div>
+      <button class="post-action" onclick="toggleComments({{ post.id }})">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg>
+        <span id="comment-count-{{ post.id }}">{{ post.comment_count }}</span>
+      </button>
+
+      <!-- ✅ CHANGE 3: Message button in post footer -->
+      {% if post.author != user %}
+      <div class="post-divider"></div>
+      <a href="{% url 'start_conversation' post.author.id %}" class="post-action">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2L2 7l5 2 2 5 5-12z"/>
+        </svg>
+        Message
+      </a>
+      {% endif %}
+
+      <div class="post-views">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6s1.8-4 5-4 5 4 5 4-1.8 4-5 4-5-4-5-4z"/><circle cx="6" cy="6" r="1.5"/></svg>
+        {{ post.like_count|add:post.comment_count }} interactions
+      </div>
+    </div>
+
+    <div class="comments-section" id="comments-{{ post.id }}">
+      <div class="comment-input-row">
+        <div class="comment-avatar">{{ user.username|first|upper }}</div>
+        <input class="comment-input" placeholder="Write a comment… (Enter to send)"
+               onkeydown="submitComment(event, {{ post.id }}, this)"/>
+      </div>
+      <div id="comment-list-{{ post.id }}">
+        {% for comment in post.comments.all %}
+        <div class="comment">
+          <div class="comment-avatar" style="background:{% if comment.author.role == 'landlord' %}#1A1A1A{% elif comment.author.role == 'agent' %}#185FA5{% else %}#3B6D11{% endif %};">
+            {{ comment.author.username|first|upper }}{% if comment.author.last_name %}{{ comment.author.last_name|first|upper }}{% endif %}
+          </div>
+          <div class="comment-body">
+            <div class="comment-author">{{ comment.author.get_full_name|default:comment.author.username }}</div>
+            <div class="comment-text">{{ comment.content }}</div>
+            <div class="comment-time">{{ comment.created_at|timesince }} ago</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-feed">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg>
+    <h3>No posts yet</h3>
+    <p>Be the first to post something to the community.</p>
+  </div>
+  {% endfor %}
+
+</div><!-- feed-main -->
+
+<!-- Sidebar -->
+<div class="community-sidebar">
+  <div class="sidebar-stack">
+
+    <div class="side-card">
+      <div class="side-card-header">
+        <div class="side-card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2 1v9l-2 1V2zM2 5h10v6H2l-1-1V6l1-1zM2 5v6"/></svg>
+          Announcements
+        </div>
+        <span style="font-size:10px;color:var(--text-tertiary);">{{ announcements.count }}</span>
+      </div>
+      {% for ann in announcements %}
+      <div class="ann-item">
+        <div class="ann-dot" style="background:{% if ann.priority == 'high' %}var(--red-text){% elif ann.priority == 'medium' %}var(--amber-text){% else %}var(--green-text){% endif %};"></div>
+        <div>
+          <div class="ann-title">{{ ann.content|truncatechars:55 }}</div>
+          <div class="ann-sub">{{ ann.author.get_full_name|default:ann.author.username }}</div>
+          <div class="ann-time">{{ ann.created_at|timesince }} ago</div>
+        </div>
+      </div>
+      {% empty %}
+      <div style="padding:14px 16px;font-size:12px;color:var(--text-tertiary);text-align:center;">No announcements</div>
+      {% endfor %}
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-header">
+        <div class="side-card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
+          Members
+        </div>
+        <span style="font-size:10px;color:var(--green-text);font-weight:500;">● active</span>
+      </div>
+      <div class="online-list">
+        {% for u in online_users %}
+        <!-- ✅ CHANGE 4: Message icon on each member in sidebar -->
+        <div class="online-item">
+          <div class="online-av" style="background:{% if u.role == 'landlord' %}#1A1A1A{% elif u.role == 'agent' %}#185FA5{% else %}#3B6D11{% endif %};">
+            {{ u.username|first|upper }}{% if u.last_name %}{{ u.last_name|first|upper }}{% endif %}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="online-name">{{ u.get_full_name|default:u.username }}</div>
+            <div class="online-role">{{ u.role }}</div>
+          </div>
+          {% if u != user %}
+          <a href="{% url 'start_conversation' u.id %}" class="msg-btn" title="Message {{ u.get_full_name|default:u.username }}">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2L2 7l5 2 2 5 5-12z"/>
+            </svg>
+          </a>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div style="font-size:12px;color:var(--text-tertiary);">No other members yet</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-header">
+        <div class="side-card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Filter
+        </div>
+      </div>
+      <div class="tags-wrap">
+        <a href="{% url 'community' %}"  class="tag {% if not active_tab %}active{% endif %}"># all</a>
+        <a href="?type=announcement"     class="tag {% if active_tab == 'announcement' %}active{% endif %}"># announcements</a>
+        <a href="?type=maintenance"      class="tag {% if active_tab == 'maintenance' %}active{% endif %}"># maintenance</a>
+        <a href="?type=event"            class="tag {% if active_tab == 'event' %}active{% endif %}"># events</a>
+        <a href="?type=general"          class="tag {% if active_tab == 'general' %}active{% endif %}"># general</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+</div><!-- community-layout -->
+<script>
+  const CSRF = '{{ csrf_token }}';
+
+  // =========================
+  // OPEN COMPOSER OPTIONS
+  // =========================
+  document.getElementById('composerInput')?.addEventListener('focus', () => {
+    document.getElementById('composerOptions')?.classList.add('open');
+  });
+
+  // =========================
+  // LIKE / UNLIKE
+  // =========================
+  async function toggleLike(postId, btn) {
+    try {
+      const res = await fetch(`/community/post/${postId}/like/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF }
+      });
+
+      if (!res.ok) throw new Error('Like failed');
+
+      const data = await res.json();
+
+      const svg = btn.querySelector('svg');
+      const countEl = document.getElementById(`like-count-${postId}`);
+
+      if (countEl) countEl.textContent = data.count;
+
+      if (data.liked) {
+        btn.classList.add('liked');
+        svg.setAttribute('fill', 'var(--red-text)');
+        svg.setAttribute('stroke', 'var(--red-text)');
+      } else {
+        btn.classList.remove('liked');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // =========================
+  // TOGGLE COMMENTS
+  // =========================
+  function toggleComments(postId) {
+    const section = document.getElementById(`comments-${postId}`);
+    if (!section) return;
+
+    section.classList.toggle('open');
+
+    if (section.classList.contains('open')) {
+      section.querySelector('.comment-input')?.focus();
+    }
+  }
+
+  // =========================
+  // ADD COMMENT
+  // =========================
+  async function submitComment(e, postId, input) {
+    if (e.key !== 'Enter' || !input.value.trim()) return;
+
+    e.preventDefault();
+
+    try {
+      const res = await fetch(`/community/post/${postId}/comment/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': CSRF,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `content=${encodeURIComponent(input.value.trim())}`
+      });
+
+      if (!res.ok) throw new Error('Comment failed');
+
+      const data = await res.json();
+
+      if (data.error) return;
+
+      const list = document.getElementById(`comment-list-${postId}`);
+      const countEl = document.getElementById(`comment-count-${postId}`);
+
+      const div = document.createElement('div');
+      div.className = 'comment';
+
+      div.innerHTML = `
+        <div class="comment-avatar" style="background:var(--role-color);">
+          ${data.initials}
+        </div>
+        <div class="comment-body">
+          <div class="comment-author">${data.author}</div>
+          <div class="comment-text">${data.content}</div>
+          <div class="comment-time">Just now</div>
+        </div>
+      `;
+
+      if (list) list.appendChild(div);
+
+      if (countEl) {
+        countEl.textContent = parseInt(countEl.textContent || 0) + 1;
+      }
+
+      input.value = '';
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // =========================
+  // DELETE POST
+  // =========================
+  async function deletePost(postId) {
+    if (!confirm('Delete this post?')) return;
+
+    try {
+      const res = await fetch(`/community/post/${postId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF }
+      });
+
+      if (!res.ok) throw new Error('Delete failed');
+
+      const data = await res.json();
+
+      if (data.deleted) {
+        document.getElementById(`post-${postId}`)?.remove();
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // =========================
+  // DROPDOWN MENU
+  // =========================
+  function toggleMenu(postId) {
+    const menu = document.getElementById(`menu-${postId}`);
+    if (!menu) return;
+
+    document.querySelectorAll('.post-dropdown.open').forEach(d => {
+      if (d !== menu) d.classList.remove('open');
+    });
+
+    menu.classList.toggle('open');
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.post-menu-wrap')) {
+      document.querySelectorAll('.post-dropdown.open')
+        .forEach(d => d.classList.remove('open'));
+    }
+  });
+
+  // =========================
+  // COPY LINK
+  // =========================
+  function copyLink(postId) {
+    const url = `${window.location.origin}/community/#post-${postId}`;
+
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        console.log('Link copied');
+      })
+      .catch(() => {
+        console.error('Copy failed');
+      });
+  }
+</script>
+{% endblock %}

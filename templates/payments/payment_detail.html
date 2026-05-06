@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Detail{% endblock %}
+
+{% block content %}
+
+<style>
+.container{
+  max-width:800px;
+  margin:auto;
+}
+
+/* CARD */
+.card{
+  background:var(--bg-card);
+  border:0.5px solid var(--border-light);
+  border-radius:12px;
+  padding:20px;
+}
+
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+
+.title{
+  font-size:18px;
+  font-weight:600;
+}
+
+.badge{
+  padding:5px 12px;
+  border-radius:20px;
+  font-size:11px;
+}
+
+.paid{ background:#d1fae5; color:#065f46; }
+.pending{ background:#fef3c7; color:#92400e; }
+.overdue{ background:#fee2e2; color:#991b1b; }
+
+/* ROWS */
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 0;
+  border-bottom:0.5px solid var(--border-light);
+  font-size:13px;
+}
+
+.label{
+  color:var(--text-secondary);
+}
+
+.value{
+  font-weight:500;
+}
+
+/* ACTIONS */
+.actions{
+  margin-top:20px;
+  display:flex;
+  gap:10px;
+}
+
+.btn{
+  padding:8px 12px;
+  border:none;
+  border-radius:8px;
+  font-size:12px;
+  cursor:pointer;
+  text-decoration:none;
+}
+
+.primary{
+  background:var(--blue-text);
+  color:white;
+}
+
+.secondary{
+  background:#f3f4f6;
+  color:#111;
+}
+
+.danger{
+  background:#fee2e2;
+  color:#991b1b;
+}
+</style>
+
+<div class="container">
+
+  <div class="card">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="title">
+        Payment — {{ payment.month }}
+      </div>
+
+      <span class="badge
+        {% if payment.status == 'paid' %}paid
+        {% elif payment.status == 'pending' %}pending
+        {% else %}overdue{% endif %}">
+        {{ payment.status }}
+      </span>
+    </div>
+
+    <!-- DETAILS -->
+    <div class="row">
+      <div class="label">Property</div>
+      <div class="value">{{ payment.contract.property.title }}</div>
+    </div>
+
+    <div class="row">
+      <div class="label">Address</div>
+      <div class="value">{{ payment.contract.property.address }}</div>
+    </div>
+
+    {% if user.role != "tenant" %}
+    <div class="row">
+      <div class="label">Tenant</div>
+      <div class="value">{{ payment.contract.tenant.user.username }}</div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+      <div class="label">Amount</div>
+      <div class="value">${{ payment.amount }}</div>
+    </div>
+
+    <div class="row">
+      <div class="label">Due Date</div>
+      <div class="value">{{ payment.due_date|date:"M j, Y" }}</div>
+    </div>
+
+    {% if payment.paid_date %}
+    <div class="row">
+      <div class="label">Paid Date</div>
+      <div class="value">{{ payment.paid_date|date:"M j, Y" }}</div>
+    </div>
+    {% endif %}
+
+    <!-- ACTIONS -->
+    <div class="actions">
+
+      <!-- TENANT ACTION -->
+      {% if user.role == "tenant" and payment.status != "paid" %}
+        <form method="POST" action="{% url 'process_payment' payment.id %}">
+          {% csrf_token %}
+          <button class="btn primary">Pay Now</button>
+        </form>
+      {% endif %}
+
+      <!-- LANDLORD / AGENT ACTION -->
+      {% if user.role == "landlord" or user.role == "agent" %}
+        {% if payment.status != "paid" %}
+          <form method="POST" action="{% url 'mark_paid' payment.id %}">
+            {% csrf_token %}
+            <button class="btn primary">Mark Paid</button>
+          </form>
+        {% endif %}
+      {% endif %}
+
+      <!-- BACK -->
+      <a href="{% url 'payment_list' %}" class="btn secondary">
+        Back
+      </a>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}

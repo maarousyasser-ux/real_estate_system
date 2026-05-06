@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Contracts — Estāte{% endblock %}
+
+{% block content %}
+<style>
+  .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+  .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+  .strip-card{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-md);padding:14px 16px;display:flex;align-items:center;gap:12px;}
+  .strip-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .strip-icon svg{width:16px;height:16px;}
+  .strip-icon.green{background:var(--green-bg);color:var(--green-text);}
+  .strip-icon.blue {background:var(--blue-bg); color:var(--blue-text);}
+  .strip-icon.amber{background:var(--amber-bg);color:var(--amber-text);}
+  .strip-icon.red  {background:var(--red-bg);  color:var(--red-text);}
+  .strip-val{font-size:20px;font-weight:500;color:var(--text-primary);line-height:1;}
+  .strip-lbl{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+
+  .table-card{background:var(--bg-card);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);overflow:hidden;}
+  .table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:0.5px solid var(--border-light);}
+  .table-title{font-size:13px;font-weight:500;color:var(--text-primary);}
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{font-size:10px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.6px;padding:10px 20px;text-align:left;background:var(--bg-secondary);border-bottom:0.5px solid var(--border-light);}
+  tbody td{font-size:12px;color:var(--text-primary);padding:12px 20px;border-bottom:0.5px solid var(--border-light);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:var(--bg-secondary);}
+  td.muted{color:var(--text-secondary);}
+
+  .progress-wrap{width:80px;}
+  .progress-track{height:4px;background:var(--bg-secondary);border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--role-color);border-radius:2px;}
+
+  .expiring-warn{color:var(--amber-text);font-size:10px;font-weight:500;}
+
+  .empty-state{text-align:center;padding:48px;color:var(--text-secondary);}
+  .empty-state svg{width:40px;height:40px;opacity:.2;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;}
+  .empty-state h3{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:4px;}
+
+  @media(max-width:900px){.stats-strip{grid-template-columns:repeat(2,1fr);}}
+</style>
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Contracts</div>
+    <div class="page-sub">Manage all lease agreements</div>
+  </div>
+  {% if user_role != "tenant" %}
+  <a href="{% url 'contract_create' %}" class="btn-estate primary">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v12M2 8h12"/></svg>
+    New Contract
+  </a>
+  {% endif %}
+</div>
+
+<!-- Stats -->
+<div class="stats-strip">
+  <div class="strip-card">
+    <div class="strip-icon blue"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4M5 12h2"/></svg></div>
+    <div><div class="strip-val">{{ total }}</div><div class="strip-lbl">Total contracts</div></div>
+  </div>
+  <div class="strip-card">
+    <div class="strip-icon green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 3L6 10l-3-3"/></svg></div>
+    <div><div class="strip-val">{{ active }}</div><div class="strip-lbl">Active</div></div>
+  </div>
+  <div class="strip-card">
+    <div class="strip-icon amber"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg></div>
+    <div><div class="strip-val">{{ expiring }}</div><div class="strip-lbl">Expiring soon</div></div>
+  </div>
+  <div class="strip-card">
+    <div class="strip-icon red"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M8 12v1.5"/></svg></div>
+    <div><div class="strip-val">{{ expired }}</div><div class="strip-lbl">Expired</div></div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+  <div class="table-header">
+    <div class="table-title">All contracts</div>
+  </div>
+
+  {% if contracts %}
+  <table>
+    <thead>
+      <tr>
+        <th>Tenant</th>
+        <th>Property</th>
+        <th>Rent/mo</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Progress</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for contract in contracts %}
+      <tr>
+        <td>
+          {{ contract.tenant.user.username }}
+          <div style="font-size:11px;color:var(--text-secondary);">{{ contract.tenant.user.email }}</div>
+        </td>
+        <td>
+          <div style="font-weight:500;">{{ contract.property.title }}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">{{ contract.property.address|truncatechars:30 }}</div>
+        </td>
+        {% if user_role != "tenant" %}
+        <td>${{ contract.rent_amount }}</td>
+        {% endif %}
+        <td class="muted">{{ contract.start_date|date:"M j, Y" }}</td>
+        <td class="muted">
+          {{ contract.end_date|date:"M j, Y" }}
+          {% if contract.is_expiring_soon %}
+          <div class="expiring-warn">⚠ {{ contract.days_remaining }}d left</div>
+          {% endif %}
+        </td>
+        <td>
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill" style="width:{{ contract.lease_progress_pct }}%"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:3px;">{{ contract.lease_progress_pct }}%</div>
+          </div>
+        </td>
+        <td>
+          <span class="pill
+            {% if contract.status == 'active' %}done
+            {% elif contract.status == 'expired' %}overdue
+            {% elif contract.status == 'cancelled' %}overdue
+            {% else %}pending{% endif %}">
+            {{ contract.get_status_display }}
+          </span>
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <a href="{% url 'contract_detail' contract.pk %}" class="btn-estate" style="padding:5px 10px;font-size:11px;">View</a>
+            {% if contract.status == 'active' %}
+            <a href="{% url 'contract_terminate' contract.pk %}" class="btn-estate" style="padding:5px 10px;font-size:11px;color:var(--red-text);">End</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty-state">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>
+    <h3>No contracts yet</h3>
+    <p>Create your first contract to get started.</p>
+    <a href="{% url 'contract_create' %}" class="btn-estate primary" style="display:inline-flex;margin-top:16px;">New Contract</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

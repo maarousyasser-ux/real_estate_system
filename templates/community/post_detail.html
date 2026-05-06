@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Post{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{% url 'community:feed' %}" class="btn btn-light btn-sm rounded-circle">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h5 class="fw-700 mb-0">Post</h5>
+</div>
+
+<!-- Post -->
+<div class="ec-card mb-3">
+  <div class="ec-card-body">
+    <div class="d-flex align-items-start gap-3 mb-3">
+      <a href="{% url 'community:profile' username=post.author.user.username %}">
+        {% if post.author.avatar %}
+          <img src="{{ post.author.avatar.url }}" class="post-author-avatar" />
+        {% else %}
+          <div class="post-avatar-placeholder bg-role-{{ post.author.role }}">
+            {{ post.author.user.first_name|first|upper }}{{ post.author.user.last_name|first|upper }}{% if not post.author.user.first_name %}{{ post.author.user.username|slice:":2"|upper }}{% endif %}
+          </div>
+        {% endif %}
+      </a>
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <a href="{% url 'community:profile' username=post.author.user.username %}" class="fw-600 text-dark text-decoration-none">
+            {{ post.author.user.get_full_name|default:post.author.user.username }}
+          </a>
+          <span class="role-pill role-{{ post.author.role }}">{{ post.author.get_role_display }}</span>
+          <span class="badge bg-{{ post.type_color }} bg-opacity-10 text-{{ post.type_color }} rounded-pill" style="font-size:10px;">{{ post.get_post_type_display }}</span>
+        </div>
+        <div class="text-muted-sm">{{ post.created_at|date:"M j, Y · H:i" }}</div>
+      </div>
+    </div>
+
+    <p style="font-size:15px;line-height:1.7;">{{ post.content }}</p>
+    {% if post.image %}
+      <img src="{{ post.image.url }}" class="img-fluid rounded-3 mb-3" style="max-height:400px;width:100%;object-fit:cover;" />
+    {% endif %}
+  </div>
+
+  <div class="post-actions d-flex px-2 py-1">
+    <button class="post-action-btn like-btn {% if user_liked %}liked{% endif %}"
+            onclick="toggleLikeDetail({{ post.id }}, this)">
+      <i class="bi {% if user_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+      <span class="like-count">{{ post.like_count }}</span> Like
+    </button>
+    <a href="{% url 'community:conversation' username=post.author.user.username %}" class="post-action-btn">
+      <i class="bi bi-send"></i> Message
+    </a>
+  </div>
+</div>
+
+<!-- Comments -->
+<div class="ec-card">
+  <div class="ec-card-body border-bottom">
+    <div class="fw-700" style="font-size:14px;">{{ post.comment_count }} Comments</div>
+  </div>
+
+  <!-- Add comment -->
+  <div class="ec-card-body border-bottom">
+    <form method="post" action="{% url 'community:add_comment' pk=post.id %}" class="d-flex gap-3">
+      {% csrf_token %}
+      <div class="flex-grow-1">
+        {{ comment_form.content }}
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 align-self-end">Post</button>
+    </form>
+  </div>
+
+  <!-- Comment list -->
+  {% for comment in comments %}
+  <div class="ec-card-body border-bottom">
+    <div class="d-flex gap-3">
+      {% if comment.author.avatar %}
+        <img src="{{ comment.author.avatar.url }}" class="rounded-circle flex-shrink-0" style="width:36px;height:36px;object-fit:cover;" />
+      {% else %}
+        <div class="post-avatar-placeholder bg-role-{{ comment.author.role }} flex-shrink-0" style="width:36px;height:36px;font-size:12px;border-radius:50%;">
+          {{ comment.author.user.first_name|first|upper }}{{ comment.author.user.last_name|first|upper }}{% if not comment.author.user.first_name %}{{ comment.author.user.username|slice:":2"|upper }}{% endif %}
+        </div>
+      {% endif %}
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <a href="{% url 'community:profile' username=comment.author.user.username %}" class="fw-600 text-dark text-decoration-none" style="font-size:13px;">
+            {{ comment.author.user.get_full_name|default:comment.author.user.username }}
+          </a>
+          <span class="role-pill role-{{ comment.author.role }}" style="font-size:10px;">{{ comment.author.get_role_display }}</span>
+          <span class="text-muted-sm">{{ comment.created_at|timesince }} ago</span>
+        </div>
+        <p class="mb-2" style="font-size:14px;line-height:1.5;">{{ comment.content }}</p>
+
+        <!-- Reply form toggle -->
+        <button class="btn btn-sm text-muted p-0" style="font-size:12px;" onclick="toggleReply({{ comment.id }})">
+          <i class="bi bi-reply me-1"></i>Reply
+        </button>
+
+        <div id="reply-form-{{ comment.id }}" style="display:none;" class="mt-2">
+          <form method="post" action="{% url 'community:add_comment' pk=post.id %}" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+            <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a reply..." required>
+            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Reply</button>
+          </form>
+        </div>
+
+        <!-- Replies -->
+        {% for reply in comment.replies.all %}
+        <div class="d-flex gap-2 mt-3 ms-2">
+          {% if reply.author.avatar %}
+            <img src="{{ reply.author.avatar.url }}" class="rounded-circle flex-shrink-0" style="width:28px;height:28px;object-fit:cover;" />
+          {% else %}
+            <div class="post-avatar-placeholder bg-role-{{ reply.author.role }} flex-shrink-0" style="width:28px;height:28px;font-size:10px;border-radius:50%;">
+              {{ reply.author.user.first_name|first|upper }}{% if not reply.author.user.first_name %}{{ reply.author.user.username|slice:":1"|upper }}{% endif %}
+            </div>
+          {% endif %}
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <a href="{% url 'community:profile' username=reply.author.user.username %}" class="fw-600 text-dark text-decoration-none" style="font-size:12px;">
+                {{ reply.author.user.get_full_name|default:reply.author.user.username }}
+              </a>
+              <span class="text-muted-sm">{{ reply.created_at|timesince }} ago</span>
+            </div>
+            <p class="mb-0" style="font-size:13px;line-height:1.5;">{{ reply.content }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="ec-card-body text-center py-4">
+    <p class="text-muted small mb-0">Be the first to comment!</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleLikeDetail(postId, btn) {
+  ajaxPost(`/community/post/${postId}/like/`, btn, (data) => {
+    const icon = btn.querySelector('i');
+    const count = btn.querySelector('.like-count');
+    icon.className = data.liked ? 'bi bi-heart-fill' : 'bi bi-heart';
+    btn.className = data.liked ? 'post-action-btn like-btn liked' : 'post-action-btn like-btn';
+    count.textContent = data.count;
+  });
+}
+
+function toggleReply(commentId) {
+  const form = document.getElementById(`reply-form-${commentId}`);
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

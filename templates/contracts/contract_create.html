@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}New Contract — Estāte{% endblock %}
+
+{% block content %}
+<style>
+  .form-card{
+    max-width:720px;
+    margin:auto;
+    background:var(--bg-card);
+    border:0.5px solid var(--border-light);
+    border-radius:var(--radius-lg);
+    padding:24px;
+  }
+
+  .form-header{
+    margin-bottom:20px;
+  }
+
+  .form-title{
+    font-size:18px;
+    font-weight:600;
+    color:var(--text-primary);
+  }
+
+  .form-sub{
+    font-size:12px;
+    color:var(--text-secondary);
+    margin-top:4px;
+  }
+
+  .form-group{
+    margin-bottom:16px;
+  }
+
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--text-secondary);
+    margin-bottom:6px;
+  }
+
+  input, select, textarea{
+    width:100%;
+    padding:10px 12px;
+    border-radius:var(--radius-sm);
+    border:0.5px solid var(--border-light);
+    background:var(--bg-secondary);
+    color:var(--text-primary);
+    font-size:13px;
+    outline:none;
+  }
+
+  input:focus, select:focus, textarea:focus{
+    border-color:var(--blue-text);
+    background:var(--bg-card);
+  }
+
+  .form-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+
+  .form-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:20px;
+  }
+
+  .btn-cancel{
+    background:transparent;
+    border:0.5px solid var(--border-light);
+    padding:8px 14px;
+    border-radius:var(--radius-sm);
+    font-size:12px;
+    color:var(--text-secondary);
+    text-decoration:none;
+  }
+
+  .btn-submit{
+    background:var(--blue-text);
+    color:white;
+    padding:8px 14px;
+    border:none;
+    border-radius:var(--radius-sm);
+    font-size:12px;
+    cursor:pointer;
+  }
+
+  .btn-submit:hover{
+    opacity:0.9;
+  }
+
+  .locked-box{
+    padding:10px 12px;
+    background:#f3f4f6;
+    border-radius:var(--radius-sm);
+    font-size:13px;
+    color:#555;
+    border:0.5px solid var(--border-light);
+  }
+</style>
+
+<div class="form-card">
+  <div class="form-header">
+    <div class="form-title">Create Contract</div>
+    <div class="form-sub">Fill in the details to create a new lease agreement</div>
+  </div>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <!-- 🔥 CRITICAL FIX: always send IDs -->
+    <input type="hidden" name="tenant" value="{{ tenant_id }}">
+    <input type="hidden" name="property" value="{{ property_id }}">
+
+    <!-- DISPLAY ONLY -->
+    <div class="form-group">
+      <label>Tenant</label>
+      <div class="locked-box">
+        {{ form.instance.tenant|default:"Selected Tenant" }}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Property</label>
+      <div class="locked-box">
+        {{ form.instance.property|default:"Selected Property" }}
+      </div>
+    </div>
+
+    <!-- RENT -->
+    <div class="form-group">
+      <label>Monthly Rent</label>
+      {{ form.rent_amount }}
+    </div>
+
+    <!-- DATES -->
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date</label>
+        {{ form.start_date }}
+      </div>
+      <div class="form-group">
+        <label>End Date</label>
+        {{ form.end_date }}
+      </div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="form-group">
+      <label>Status</label>
+      {{ form.status }}
+    </div>
+
+    <!-- DEPOSIT -->
+    <div class="form-group">
+      <label>Deposit</label>
+      {{ form.deposit }}
+    </div>
+
+    <!-- NOTES -->
+    <div class="form-group">
+      <label>Notes</label>
+      {{ form.notes }}
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="form-actions">
+      <a href="{% url 'contract_list' %}" class="btn-cancel">Cancel</a>
+      <button type="submit" class="btn-submit">Create Contract</button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="page-title">{{ property.title }}</h1>
+            <p class="page-sub">
+                <i class="fas fa-map-marker-alt"></i> {{ property.address }}
+            </p>
+        </div>
+
+        <span class="pill 
+            {% if property.status == 'available' %}paid
+            {% elif property.status == 'occupied' %}open
+            {% else %}overdue
+            {% endif %}">
+            {{ property.get_status_display }}
+        </span>
+    </div>
+
+    <div class="row">
+
+        <!-- LEFT COLUMN -->
+        <div class="col-md-8">
+
+            <!-- PROPERTY SPECS -->
+            <div class="card mb-4">
+                <h3 class="section-title">Property Specifications</h3>
+
+                <div class="estate-grid mt-3">
+                    <div>
+                        <small class="muted">Monthly Rent</small>
+                        <p><strong>{{ property.monthly_rent|default:"—" }} DH</strong></p>
+                    </div>
+
+                    <div>
+                        <small class="muted">Size</small>
+                        <p><strong>{{ property.size|default:"—" }} m²</strong></p>
+                    </div>
+
+                    <div>
+                        <small class="muted">Type</small>
+                        <p><strong>{{ property.get_property_type_display }}</strong></p>
+                    </div>
+
+                    <div>
+                        <small class="muted">Total Units</small>
+                        <p><strong>{{ property.units_count|default:"—" }}</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTACT -->
+            <div class="card">
+                <h3 class="section-title">Enquire About This Property</h3>
+
+                {% if property.agent %}
+                    <p>Managed by Agent: <strong>{{ property.agent.username }}</strong></p>
+                    <a href="mailto:{{ property.agent.email }}?subject=Inquiry: {{ property.title }}" 
+                       class="btn-estate primary">
+                        Email Agent
+                    </a>
+                {% else %}
+                    <p>Contact Landlord: <strong>{{ property.owner.username }}</strong></p>
+                    <a href="mailto:{{ property.owner.email }}?subject=Inquiry: {{ property.title }}" 
+                       class="btn-estate primary">
+                        Contact Owner
+                    </a>
+                {% endif %}
+            </div>
+
+        </div>
+
+
+        
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-md-4">
+
+            {% if request.user.role == 'LANDLORD' %}
+            <!-- LANDLORD VIEW -->
+            <div class="card">
+                <h3 class="section-title">Current Resident Info</h3>
+
+                {% if property.tenants.exists %}
+                    {% for tenant in property.tenants.all %}
+                        <div class="tenant-block">
+
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar-circle me-3">
+                                    {{ tenant.user.first_name|slice:":1" }}{{ tenant.user.last_name|slice:":1" }}
+                                </div>
+
+                                <div>
+                                    <h4 class="mb-0">
+                                        {{ tenant.user.get_full_name|default:tenant.user.username }}
+                                    </h4>
+                                    <small class="muted">{{ tenant.phone_number }}</small>
+                                </div>
+                            </div>
+
+                            <div class="lease-info">
+                                <p>
+                                    <small class="muted">Lease Period:</small><br>
+                                    {{ tenant.lease_start }} — {{ tenant.lease_end }}
+                                </p>
+                            </div>
+
+                            <a href="tel:{{ tenant.phone_number }}" 
+                               class="btn-estate primary w-100 text-center mb-3">
+                                Contact Tenant
+                            </a>
+
+                            {% if not forloop.last %}<hr>{% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="muted">This property is currently vacant.</p>
+                        <a href="{% url 'assign_tenant' property.id %}" 
+                           class="btn-estate primary">
+                            Assign a Tenant
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% else %}
+            <!-- TENANT / PUBLIC VIEW -->
+            <div class="card bg-light border-0">
+                <h3 class="section-title text-primary">Why this Property?</h3>
+
+                <ul class="mt-3 list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Verified Listing
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Fast Response Agent
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Prime Location in {{ property.address|truncatechars:20 }}
+                    </li>
+                </ul>
+
+                <p class="small text-muted mt-3">
+                    Interested? Use the contact button to schedule a visit.
+                </p>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+<!-- MESSAGE BUTTON -->
+{% if request.user != property.agent and request.user != property.owner %}
+
+    {% if property.agent %}
+        <a href="{% url 'real_estate_messages:start_conversation' property.agent.id %}"
+           class="btn-estate secondary mt-2 w-100 text-center">
+            💬 Message Agent
+        </a>
+    {% else %}
+        <a href="{% url 'real_estate_messages:start_conversation' property.owner.id %}"
+           class="btn-estate secondary mt-2 w-100 text-center">
+            💬 Message Owner
+        </a>
+    {% endif %}
+
+{% endif %}
+
+<!-- STYLES -->
+<style>
+.avatar-circle {
+    width: 45px;
+    height: 45px;
+    background: var(--primary-color, #000);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.estate-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.tenant-block {
+    margin-bottom: 10px;
+}
+</style>
+
+{% endblock %}

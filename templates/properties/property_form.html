@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="breadcrumb-row">
+  <a href="/">Dashboard</a>
+  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"><path d="M4 2l4 4-4 4"/></svg>
+  <a href="{% url 'property_list' %}">Properties</a> 
+  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"><path d="M4 2l4 4-4 4"/></svg>
+  <span>{% if form.instance.pk %}Edit property{% else %}Add new property{% endif %}</span>
+</div>
+
+<div style="margin-bottom:20px;">
+  <div class="page-title">{% if form.instance.pk %}Edit Property{% else %}Add Property{% endif %}</div>
+  <div class="page-sub">Fill in the details below to list a new property</div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="propertyForm">
+  {% csrf_token %}
+  <div class="create-layout">
+    
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <!-- Section 1: Basic Info -->
+      <div class="form-card">
+        <div class="form-section">
+          <div class="section-label">Basic information</div>
+          
+          <div class="f-group">
+            <label class="f-label">Property Title</label>
+            <div class="f-wrap">
+              {{ form.title }}
+            </div>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label">Address</label>
+            <div class="f-wrap">
+              {{ form.address }}
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <div class="f-group">
+              <label class="f-label">Property Type</label>
+              {{ form.property_type }}
+            </div>
+            <div class="f-group">
+              <label class="f-label">Current Status</label>
+              {{ form.status }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Details & Pricing -->
+      <div class="form-card">
+        <div class="form-section">
+          <div class="section-label">Specs & Financials</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <div class="f-group">
+                <label class="f-label">Price ($)</label>
+                {{ form.price }}
+            </div>
+            <div class="f-group">
+                <label class="f-label">Monthly Rent ($)</label>
+                {{ form.monthly_rent }}
+            </div>
+            <div class="f-group">
+                <label class="f-label">Size (m²)</label>
+                {{ form.size }}
+            </div>
+            <div class="f-group">
+                <label class="f-label">Total Units</label>
+                {{ form.units_count }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Amenities -->
+      <div class="form-card">
+        <div class="form-section">
+          <div class="section-label">Amenities & features</div>
+          <div class="amenities-grid">
+            {% for am in amenities_list %}
+            <div class="amenity-item">
+              <input type="checkbox" id="am_{{ forloop.counter }}" name="amenities" value="{{ am|lower }}" />
+              <label for="am_{{ forloop.counter }}">{{ am }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-section">
+          <div class="section-label">Photos</div>
+          {{ form.image }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar: Actions & Ownership -->
+    <div class="sidebar-stack">
+      <div class="side-card">
+        <div style="font-weight:600; font-size:13px; margin-bottom:12px;">Publishing Options</div>
+        
+        {% if form.owner %}
+        <div class="f-group" style="margin-bottom:15px;">
+          <label class="f-label" style="color:#000;">Assign Owner (Landlord)</label>
+          {{ form.owner }}
+          <small style="color:#666; font-size:11px;">Select the owner for this listing.</small>
+        </div>
+        {% endif %}
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button type="submit" class="btn-estate primary">Save Property</button>
+          <a href="{% url 'property_list' %}" class="btn-estate secondary" style="text-align:center; text-decoration:none;">Cancel</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+<style>
+  /* ── BREADCRUMB ── */
+  .breadcrumb-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+  .breadcrumb-row a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .breadcrumb-row a:hover { color: var(--text-primary); }
+  .breadcrumb-row svg { width: 12px; height: 12px; opacity: 0.4; }
+  .breadcrumb-row span { color: var(--text-primary); font-weight: 500; }
+
+  /* ── LAYOUT ── */
+  .create-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* ── FORM CARD ── */
+  .form-card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .form-section {
+    padding: 22px 24px;
+    border-bottom: 0.5px solid var(--border-light);
+  }
+  .form-section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label svg { width: 13px; height: 13px; }
+
+  /* ── FIELD STYLES ── */
+  .f-group { margin-bottom: 14px; }
+  .f-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .f-wrap { position: relative; }
+  .f-icon {
+    position: absolute;
+    left: 11px; top: 50%;
+    transform: translateY(-50%);
+    width: 14px; height: 14px;
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+  .f-input, .f-select, .f-textarea {
+    width: 100%;
+    padding: 9px 12px 9px 34px;
+    border: 0.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    outline: none;
+  }
+
+  /* ── AMENITIES ── */
+  .amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .amenity-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 0.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .amenity-item label { font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+
+  /* ── SIDEBAR ── */
+  .sidebar-stack { display: flex; flex-direction: column; gap: 12px; }
+  .side-card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+  }
+  .check-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-medium);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .check-dot.done { background: #22c55e; border-color: #22c55e; }
+
+  /* ── BUTTONS ── */
+  .btn-estate {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    text-decoration: none; justify-content: center;
+  }
+  .btn-estate.primary { background: var(--text-primary); color: var(--bg-card); border: none; }
+
+
+
+  /* Ensure the body can actually scroll */
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden; /* Prevent horizontal shake */
+  overflow-y: auto;   /* Enable vertical scroll */
+}
+
+/* Your main layout wrapper (the one holding sidebar + content) */
+.main-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* THE FIX: Make sure the content area can grow and scroll */
+.main-content {
+  flex: 1;
+  overflow-y: visible; /* Crucial: Let the page grow with content */
+  padding: 20px;
+  background: var(--bg-main);
+}
+
+/* Ensure the table/grid container doesn't block scrolling */
+.prop-table-wrap, .grid-view-container {
+  overflow-x: auto; /* Allow horizontal scroll for tables on small screens */
+  width: 100%;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Estāte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-page:        #F4F3F0;
+      --bg-card:        #FFFFFF;
+      --bg-secondary:   #F8F7F4;
+      --text-primary:   #111110;
+      --text-secondary: #6B6A67;
+      --text-tertiary:  #A9A8A5;
+      --border-light:   rgba(0,0,0,0.07);
+      --border-medium:  rgba(0,0,0,0.12);
+      --red-bg:         #FCEBEB;
+      --red-text:       #A32D2D;
+      --radius-sm:      8px;
+      --radius-md:      12px;
+      --radius-lg:      20px;
+    }
+
+    [data-theme="dark"] {
+      --bg-page:        #0E0E0D;
+      --bg-card:        #1A1A19;
+      --bg-secondary:   #242422;
+      --text-primary:   #F2F1EE;
+      --text-secondary: #888785;
+      --text-tertiary:  #555452;
+      --border-light:   rgba(255,255,255,0.06);
+      --border-medium:  rgba(255,255,255,0.10);
+      --red-bg:         #2D0F0F;
+      --red-text:       #F07070;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      transition: background 0.25s, color 0.25s;
+    }
+
+    .auth-layout {
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      min-height: 100vh;
+    }
+
+    /* ── LEFT PANEL ── */
+    .auth-left {
+      position: relative;
+      overflow: hidden;
+      background: #0f0f0e;
+    }
+
+    .auth-left-img {
+      position: absolute;
+      inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=1400');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.45;
+    }
+
+    .auth-left-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px;
+      height: 100%;
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .auth-logo-mark {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      background: white;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .auth-logo-mark svg { width: 18px; height: 18px; }
+
+    .auth-logo-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      color: white;
+    }
+
+    .auth-hero { max-width: 440px; }
+
+    .auth-hero-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border: 0.5px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .auth-hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.8rem;
+      color: white;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .auth-hero p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.7;
+      max-width: 360px;
+    }
+
+    .auth-stats {
+      display: flex;
+      gap: 32px;
+    }
+
+    .auth-stat-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      color: white;
+    }
+
+    .auth-stat-lbl {
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      margin-top: 2px;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .auth-right {
+      background: var(--bg-card);
+      border-left: 0.5px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 48px 44px;
+      position: relative;
+    }
+
+    .auth-theme-toggle {
+      position: absolute;
+      top: 24px; right: 24px;
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border-light);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .auth-theme-toggle:hover { background: var(--border-light); }
+    .auth-theme-toggle svg { width: 16px; height: 16px; color: var(--text-secondary); }
+
+    .auth-form-header { margin-bottom: 32px; }
+
+    .auth-form-eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .auth-form-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 26px;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+
+    .auth-form-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+
+    /* Form fields */
+    .field-group { margin-bottom: 14px; }
+
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    .field-wrap { position: relative; }
+
+    .field-icon {
+      position: absolute;
+      left: 12px; top: 50%;
+      transform: translateY(-50%);
+      width: 15px; height: 15px;
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      border: 0.5px solid var(--border-medium);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      appearance: none;
+    }
+
+    .field-input:focus {
+      border-color: var(--text-primary);
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+      background: var(--bg-card);
+    }
+
+    [data-theme="dark"] .field-input:focus {
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.05);
+    }
+
+    /* Password toggle */
+    .field-eye {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      width: 15px; height: 15px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+    }
+
+    .field-eye:hover { color: var(--text-secondary); }
+
+    /* Checkbox row */
+    .check-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      margin-top: 4px;
+    }
+
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .check-box {
+      width: 15px; height: 15px;
+      border: 0.5px solid var(--border-medium);
+      border-radius: 4px;
+      background: var(--bg-secondary);
+      accent-color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .forgot-link:hover { color: var(--text-primary); }
+
+    /* Submit button */
+    .btn-submit {
+      width: 100%;
+      padding: 11px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--text-primary);
+      color: var(--bg-card);
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover { opacity: 0.85; }
+
+    .btn-submit svg { width: 14px; height: 14px; }
+
+    /* Divider */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .auth-divider-line {
+      flex: 1;
+      height: 0.5px;
+      background: var(--border-light);
+    }
+
+    .auth-divider-text {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    /* Bottom link */
+    .auth-bottom {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 20px;
+    }
+
+    .auth-link {
+      color: var(--text-primary);
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .auth-link:hover { text-decoration: underline; }
+
+    /* Error messages */
+    .field-error {
+      font-size: 11px;
+      color: var(--red-text);
+      margin-top: 5px;
+    }
+
+    .form-errors {
+      background: var(--red-bg);
+      color: var(--red-text);
+      border: 0.5px solid var(--red-text);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 12px;
+      margin-bottom: 18px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .auth-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .auth-left { display: none; }
+
+      .auth-right {
+        padding: 40px 28px;
+        min-height: 100vh;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-layout">
+
+  <!-- LEFT -->
+  <div class="auth-left">
+    <div class="auth-left-img"></div>
+    <div class="auth-left-content">
+      <a href="#" class="auth-logo">
+        <div class="auth-logo-mark">
+          <svg viewBox="0 0 18 18" fill="none">
+            <rect x="1" y="9" width="6" height="8" rx="1" fill="#111"/>
+            <rect x="9" y="5" width="8" height="12" rx="1" fill="#111"/>
+            <polygon points="9,1 13,5 9,5" fill="#111" opacity="0.45"/>
+          </svg>
+        </div>
+        <span class="auth-logo-name">Estāte</span>
+      </a>
+
+      <div class="auth-hero">
+        <div class="auth-hero-tag">Est. 2024</div>
+        <h1>Modern Living,<br>Simplified.</h1>
+        <p>The all-in-one ecosystem for property owners and real estate professionals.</p>
+      </div>
+
+      <div class="auth-stats">
+        <div>
+          <div class="auth-stat-val">142</div>
+          <div class="auth-stat-lbl">Active units</div>
+        </div>
+        <div>
+          <div class="auth-stat-val">98%</div>
+          <div class="auth-stat-lbl">Retention rate</div>
+        </div>
+        <div>
+          <div class="auth-stat-val">$42k</div>
+          <div class="auth-stat-lbl">Monthly revenue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="auth-right">
+
+    <!-- Theme toggle -->
+    <div class="auth-theme-toggle" id="themeToggle" title="Toggle dark mode">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="3.5"/>
+        <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/>
+      </svg>
+    </div>
+
+    <div class="auth-form-header">
+      <div class="auth-form-eyebrow">Welcome back</div>
+      <div class="auth-form-title">Sign in to your account</div>
+      <div class="auth-form-sub">Enter your credentials to access the dashboard.</div>
+    </div>
+
+    <!-- Django form errors -->
+    {% if form.non_field_errors %}
+      <div class="form-errors">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" autocomplete="on">
+      {% csrf_token %}
+
+      <!-- Username -->
+      <div class="field-group">
+        <label class="field-label" for="id_username">Username</label>
+        <div class="field-wrap">
+          <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="8" cy="5" r="3"/>
+            <path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/>
+          </svg>
+          <input
+            type="text"
+            id="id_username"
+            name="username"
+            class="field-input"
+            placeholder="your_username"
+            autocomplete="username"
+            required
+            value="{{ form.username.value|default:'' }}"
+          />
+        </div>
+        {% if form.username.errors %}
+          <div class="field-error">{{ form.username.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Password -->
+      <div class="field-group">
+        <label class="field-label" for="id_password">Password</label>
+        <div class="field-wrap">
+          <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="7" width="10" height="8" rx="1.5"/>
+            <path d="M5 7V5a3 3 0 016 0v2"/>
+          </svg>
+          <input
+            type="password"
+            id="id_password"
+            name="password"
+            class="field-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          />
+          <svg class="field-eye" id="togglePassword" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" title="Show password">
+            <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/>
+            <circle cx="8" cy="8" r="2"/>
+          </svg>
+        </div>
+        {% if form.password.errors %}
+          <div class="field-error">{{ form.password.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Remember + forgot -->
+      <div class="check-row">
+        <label class="check-label">
+          <input type="checkbox" class="check-box" name="remember" id="remember" />
+          Remember me
+        </label>
+        <a href="#" class="forgot-link">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn-submit">
+        Sign in
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 8h10M9 4l4 4-4 4"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="auth-divider">
+      <div class="auth-divider-line"></div>
+      <span class="auth-divider-text">New to Estāte?</span>
+      <div class="auth-divider-line"></div>
+    </div>
+
+    <div class="auth-bottom">
+      Don't have an account?
+      <a href="{% url 'register' %}" class="auth-link">Create one free →</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Dark mode
+  const html = document.documentElement;
+  if (localStorage.getItem('estate-theme') === 'dark') html.setAttribute('data-theme', 'dark');
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    localStorage.setItem('estate-theme', isDark ? 'light' : 'dark');
+  });
+
+  // Show/hide password
+  document.getElementById('togglePassword').addEventListener('click', function () {
+    const input = document.getElementById('id_password');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+</script>
+
+</body>
+</html>

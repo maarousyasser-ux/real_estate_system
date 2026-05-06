@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-wrapper">
+
+  <h2>Notifications</h2>
+
+  {% for n in notifications %}
+    <div class="notif-card {% if not n.is_read %}unread{% endif %}">
+      <h4>{{ n.title }}</h4>
+      <p>{{ n.message }}</p>
+      <small>{{ n.created_at }}</small>
+    </div>
+  {% empty %}
+    <p>No notifications yet.</p>
+  {% endfor %}
+
+</div>
+
+<style>
+.notif-card {
+  padding: 15px;
+  border: 1px solid #eee;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.notif-card.unread {
+  border-left: 4px solid #000;
+  background: #f9f9f9;
+}
+</style>
+
+{% endblock %}

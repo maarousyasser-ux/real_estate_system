@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Estāte{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-page:#F4F3F0;--bg-card:#FFFFFF;--bg-secondary:#F8F7F4;--bg-sidebar:#FFFFFF;
+      --text-primary:#111110;--text-secondary:#6B6A67;--text-tertiary:#A9A8A5;
+      --border-light:rgba(0,0,0,0.07);--border-medium:rgba(0,0,0,0.12);
+      --radius-sm:8px;--radius-md:12px;--radius-lg:16px;--sidebar-w:230px;
+      --green-bg:#EAF3DE;--green-text:#3B6D11;
+      --amber-bg:#FAEEDA;--amber-text:#854F0B;
+      --blue-bg:#E6F1FB;--blue-text:#185FA5;
+      --red-bg:#FCEBEB;--red-text:#A32D2D;
+      --role-color:#1A1A1A;
+      --role-badge-bg:#1A1A1A;--role-badge-text:#fff;
+    }
+    [data-role="landlord"]{--role-color:#1A1A1A;--role-badge-bg:#1A1A1A;--role-badge-text:#fff;}
+    [data-role="agent"]   {--role-color:#185FA5;--role-badge-bg:#E6F1FB;--role-badge-text:#185FA5;}
+    [data-role="tenant"]  {--role-color:#3B6D11;--role-badge-bg:#EAF3DE;--role-badge-text:#3B6D11;}
+    [data-theme="dark"]{
+      --bg-page:#0E0E0D;--bg-card:#1A1A19;--bg-secondary:#242422;--bg-sidebar:#141413;
+      --text-primary:#F2F1EE;--text-secondary:#888785;--text-tertiary:#555452;
+      --border-light:rgba(255,255,255,0.06);--border-medium:rgba(255,255,255,0.10);
+      --green-bg:#1A2E0F;--green-text:#7CC44A;
+      --amber-bg:#2E1F08;--amber-text:#F0A843;
+      --blue-bg:#0A1F33;--blue-text:#5AABF0;
+      --red-bg:#2D0F0F;--red-text:#F07070;
+    }
+    [data-theme="dark"][data-role="agent"] {--role-badge-bg:#0A1F33;--role-badge-text:#5AABF0;}
+    [data-theme="dark"][data-role="tenant"]{--role-badge-bg:#1A2E0F;--role-badge-text:#7CC44A;}
+
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+    /* Root layout — body fills viewport, never scrolls itself */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.5;
+      transition: background .25s, color .25s;
+    }
+
+    .app-layout {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ════════════════════════════════
+       SIDEBAR — 3-layer flex column
+       .sidebar-top  → fixed, never scrolls
+       .sidebar-nav  → flex:1, scrolls silently
+       .sidebar-bot  → fixed, never scrolls
+    ════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 0.5px solid var(--border-light);
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background .25s, transform .3s;
+    }
+
+    .sidebar-top { flex-shrink: 0; padding: 20px 14px 0; }
+
+    .sidebar-nav {
+      flex: 1;
+      min-height: 0;       /* critical — lets flex child shrink below content */
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 14px 8px;
+      scrollbar-width: none;
+    }
+    .sidebar-nav::-webkit-scrollbar { display: none; }
+
+    .sidebar-bot {
+      flex-shrink: 0;
+      padding: 0 14px 14px;
+      border-top: 0.5px solid var(--border-light);
+    }
+
+    /* Logo */
+    .logo { display:flex; align-items:center; gap:10px; padding:0 8px 16px; border-bottom:0.5px solid var(--border-light); margin-bottom:10px; text-decoration:none; }
+    .logo-mark { width:34px; height:34px; border-radius:9px; background:var(--text-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .logo-mark svg { width:18px; height:18px; }
+    .logo-name { font-family:'DM Serif Display',serif; font-size:16px; color:var(--text-primary); line-height:1; }
+    .logo-tagline { font-size:10px; color:var(--text-tertiary); margin-top:2px; }
+
+    /* Role badge */
+    .role-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:600; letter-spacing:.4px; background:var(--role-badge-bg); color:var(--role-badge-text); margin:0 8px 10px; width:fit-content; text-transform:capitalize; }
+    .role-badge svg { width:10px; height:10px; }
+
+    /* Nav */
+    .nav-section-label { font-size:10px; font-weight:600; color:var(--text-tertiary); letter-spacing:.8px; text-transform:uppercase; padding:12px 10px 5px; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--radius-sm); font-size:13px; font-weight:400; color:var(--text-secondary); text-decoration:none; cursor:pointer; transition:background .15s,color .15s; margin-bottom:2px; white-space:nowrap; }
+    .nav-item:hover { background:var(--bg-secondary); color:var(--text-primary); }
+    .nav-item.active { background:var(--role-color); color:#fff; font-weight:500; }
+    .nav-item svg { width:15px; height:15px; opacity:.5; flex-shrink:0; }
+    .nav-item.active svg { opacity:1; filter:invert(1) brightness(10); }
+    [data-theme="dark"] .nav-item.active svg { filter:none; opacity:.9; }
+    .nav-badge-count { margin-left:auto; background:var(--red-text); color:#fff; font-size:10px; font-weight:600; padding:1px 7px; border-radius:20px; line-height:16px; }
+
+    /* Bottom controls */
+    .theme-toggle { display:flex; align-items:center; gap:10px; padding:10px 8px; cursor:pointer; border-radius:var(--radius-sm); transition:background .15s; user-select:none; margin-top:6px; }
+    .theme-toggle:hover { background:var(--bg-secondary); }
+    .toggle-track { width:34px; height:18px; border-radius:9px; background:var(--border-medium); position:relative; transition:background .2s; flex-shrink:0; }
+    .toggle-thumb { width:12px; height:12px; border-radius:50%; background:white; position:absolute; top:3px; left:3px; transition:transform .2s; }
+    [data-theme="dark"] .toggle-track { background:var(--text-primary); }
+    [data-theme="dark"] .toggle-thumb { transform:translateX(16px); }
+    .toggle-label { font-size:12px; color:var(--text-secondary); }
+
+    .user-block { display:flex; align-items:center; gap:10px; padding:10px 8px 2px; }
+    .avatar-circle { width:32px; height:32px; border-radius:50%; background:var(--role-color); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#fff; flex-shrink:0; }
+    .user-name { font-size:12px; font-weight:500; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .user-role { font-size:10px; color:var(--text-tertiary); text-transform:capitalize; }
+    .logout-link { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; color:var(--red-text); text-decoration:none; transition:background .15s; }
+    .logout-link:hover { background:var(--red-bg); color:var(--red-text); }
+    .logout-link svg { width:14px; height:14px; }
+
+    /* ════════════════════════════════
+       MAIN CONTENT
+       Only .page-wrapper scrolls
+    ════════════════════════════════ */
+    .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:199; backdrop-filter:blur(2px); }
+
+    .main-content {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .mobile-topbar { display:none; align-items:center; justify-content:space-between; padding:14px 18px; background:var(--bg-card); border-bottom:0.5px solid var(--border-light); flex-shrink:0; }
+    .hamburger { width:36px; height:36px; border-radius:var(--radius-sm); background:var(--bg-secondary); border:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; }
+    .hamburger span { display:block; width:16px; height:1.5px; background:var(--text-primary); border-radius:2px; }
+    .mobile-logo { font-family:'DM Serif Display',serif; font-size:16px; color:var(--text-primary); text-decoration:none; }
+
+    /* THE scroll zone — only this element scrolls */
+    .page-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 32px 28px 48px;
+    }
+
+    /* ════════════════════════════════
+       SHARED COMPONENTS
+    ════════════════════════════════ */
+    .card { background:var(--bg-card); border:0.5px solid var(--border-light)!important; border-radius:var(--radius-lg)!important; padding:20px; box-shadow:none!important; }
+    .page-title { font-family:'DM Serif Display',serif; font-size:26px; color:var(--text-primary); line-height:1; }
+    .page-sub { font-size:12px; color:var(--text-secondary); margin-top:4px; }
+    .btn-estate { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; font-family:'DM Sans',sans-serif; cursor:pointer; border:0.5px solid var(--border-medium); background:var(--bg-card); color:var(--text-secondary); transition:background .15s; text-decoration:none; }
+    .btn-estate:hover { background:var(--bg-secondary); color:var(--text-primary); }
+    .btn-estate.primary { background:var(--role-color); color:#fff; border-color:var(--role-color); }
+    .btn-estate.primary:hover { opacity:.88; color:#fff; }
+    .btn-estate svg { width:14px; height:14px; }
+    .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:10px; font-weight:500; }
+    .pill.paid     { background:var(--green-bg); color:var(--green-text); }
+    .pill.pending  { background:var(--amber-bg); color:var(--amber-text); }
+    .pill.overdue  { background:var(--red-bg);   color:var(--red-text); }
+    .pill.open     { background:var(--blue-bg);  color:var(--blue-text); }
+    .pill.progress { background:var(--amber-bg); color:var(--amber-text); }
+    .pill.done     { background:var(--green-bg); color:var(--green-text); }
+    .estate-table { width:100%; border-collapse:collapse; }
+    .estate-table thead th { font-size:10px; font-weight:600; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:.6px; padding:0 0 10px; text-align:left; }
+    .estate-table tbody td { font-size:12px; color:var(--text-primary); padding:9px 0; border-top:0.5px solid var(--border-light); }
+    .estate-table td.muted { color:var(--text-secondary); }
+    .alert-estate { padding:10px 16px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; margin-bottom:14px; border:0.5px solid transparent; }
+    .alert-estate.success { background:var(--green-bg); color:var(--green-text); border-color:var(--green-text); }
+    .alert-estate.error   { background:var(--red-bg);   color:var(--red-text);   border-color:var(--red-text); }
+    .alert-estate.warning { background:var(--amber-bg); color:var(--amber-text); border-color:var(--amber-text); }
+    .alert-estate.info    { background:var(--blue-bg);  color:var(--blue-text);  border-color:var(--blue-text); }
+
+    @media(max-width:900px){
+      .sidebar { transform:translateX(-100%); }
+      .sidebar.open { transform:translateX(0); }
+      .sidebar-overlay.open { display:block; }
+      .main-content { margin-left:0; }
+      .mobile-topbar { display:flex; }
+      .page-wrapper { padding:20px 16px 40px; }
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+
+
+
+
+
+<body data-role="{{ user.role }}">
+<div class="app-layout">
+
+  <aside class="sidebar" id="sidebar">
+
+    <!-- TOP: logo + badge — never scrolls -->
+    <div class="sidebar-top">
+      <a href="{% url 'dashboard' %}" class="logo">
+        <div class="logo-mark">
+          <svg viewBox="0 0 18 18" fill="none"><rect x="1" y="9" width="6" height="8" rx="1" fill="white"/><rect x="9" y="5" width="8" height="12" rx="1" fill="white"/><polygon points="9,1 13,5 9,5" fill="white" opacity="0.55"/></svg>
+        </div>
+        <div>
+          <div class="logo-name">Estāte</div>
+          <div class="logo-tagline">
+            {% if user.role == 'landlord' %}Owner Portal
+            {% elif user.role == 'agent' %}Agent Portal
+            {% else %}Tenant Portal{% endif %}
+          </div>
+        </div>
+      </a>
+      <div class="role-badge">
+        {% if user.role == 'landlord' %}
+          <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 1L1 4.5V11h4V8h2v3h4V4.5L6 1z"/></svg> Landlord
+        {% elif user.role == 'agent' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="4" r="2.5"/><path d="M1 11c0-2.8 2.2-4 5-4s5 1.2 5 4"/></svg> Agent
+        {% elif user.role == 'tenant' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="8" height="6" rx="1"/><path d="M4 5V4a2 2 0 014 0v1"/></svg> Tenant
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- MID: nav — scrolls silently when overflow -->
+    <div class="sidebar-nav">
+
+      {% if user.role == 'landlord' %}
+        <div class="nav-section-label">Overview</div>
+        <a href="{% url 'dashboard' %}" class="nav-item" data-path="/">
+          <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a href="{% url 'messages' %}" class="nav-item" data-path="/messages/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+          Messages <span class="nav-badge-count">3</span>
+        </a>
+        <a href="{% url 'community:feed' %}" class="nav-item" >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
+          Community
+        </a>
+        <div class="nav-section-label">Portfolio</div>
+        <a href="{% url 'property_list' %}" class="nav-item" data-path="/properties/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
+          Properties
+        </a>
+        <a href="{% url 'property_create' %}" class="nav-item" data-path="/properties/create/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+          Add Property
+        </a>
+
+
+        <a href="{% url 'rentals:rental_requests' %}" class="nav-item" data-path="/rentals/requests/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 2v12M2 8h12"/>
+          </svg>
+          Rental Requests
+        </a>
+        
+        <a href="{% url 'tenant_list' %}" class="nav-item" data-path="/tenants/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+          Tenants
+        </a>
+        <div class="nav-section-label">Finance</div>
+        <a href="#" class="nav-item" data-path="/analytics/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12l4-5 3 3 3-4 3 3"/></svg>
+          Analytics
+        </a>
+        <a href="{% url 'payment_list' %}" class="nav-item" data-path="/payments/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M1 7.5h14M5 10.5h2"/></svg>
+          Payments
+        </a>
+        <div class="nav-section-label">Contracts</div>
+
+        <a href="{% url 'contract_list' %}" class="nav-item">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+            <path d="M5 6h6M5 9h6M5 12h4"/>
+          </svg>
+          All Contracts
+        </a>
+        <div class="nav-section-label">Operations</div>
+        <a href="{% url 'maintenance_list' %}" class="nav-item" data-path="/maintenance/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg>
+          Maintenance
+        </a>
+
+
+
+      {% elif user.role == 'agent' %}
+        <div class="nav-section-label">Overview</div>
+        <a href="{% url 'dashboard' %}" class="nav-item" data-path="/">
+          <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a href="{% url 'messages' %}" class="nav-item" data-path="/messages/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+          Messages <span class="nav-badge-count">3</span>
+        </a>
+        <a href="{% url 'community:feed' %}" class="nav-item" data-path="/community/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
+          Community
+        </a>
+        <div class="nav-section-label">Listings</div>
+        <a href="{% url 'property_list' %}" class="nav-item" data-path="/properties/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
+          Properties
+        </a>
+        <a href="{% url 'property_create' %}" class="nav-item" data-path="/properties/create/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+          Add Listing
+        </a>
+         
+
+    
+        <a href="{% url 'rentals:rental_requests' %}" class="nav-item" data-path="/rentals/requests/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 2v12M2 8h12"/>
+          </svg>
+          Rental Requests
+        </a>
+
+        <div class="nav-section-label">Contracts</div>
+
+        <a href="{% url 'contract_list' %}" class="nav-item">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+            <path d="M5 6h6M5 9h6M5 12h4"/>
+          </svg>
+          My Contracts
+        </a>
+
+        <a href="{% url 'payment_list' %}" class="nav-item" data-path="/payments/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M1 7.5h14M5 10.5h2"/></svg>
+          Payments
+        </a>
+
+        <a href="#" class="nav-item" data-path="/clients/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+          Clients
+        </a>
+        <div class="nav-section-label">Finance</div>
+        <a href="#" class="nav-item" data-path="/commissions/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M1 7.5h14M5 10.5h2"/></svg>
+          Commissions
+        </a>
+        <a href="#" class="nav-item" data-path="/analytics/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12l4-5 3 3 3-4 3 3"/></svg>
+          Performance
+        </a>
+        <div class="nav-section-label">Operations</div>
+        <a href="#" class="nav-item" data-path="/maintenance/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg>
+          Maintenance
+        </a>
+
+      {% elif user.role == 'tenant' %}
+        <div class="nav-section-label">My Home</div>
+        <a href="{% url 'dashboard' %}" class="nav-item" data-path="/">
+          <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+          Overview
+        </a>
+        <a href="{% url 'contract_list' %}" class="nav-item">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+            <path d="M5 6h6M5 9h4M5 12h2"/>
+          </svg>
+          My Lease
+        </a>
+        <a href="{% url 'payment_list' %}" class="nav-item" data-path="/payments/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M1 7.5h14M5 10.5h2"/></svg>
+          Payments
+        </a>
+        <div class="nav-section-label">Support</div>
+        <a href="#" class="nav-item" data-path="/my-requests/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg>
+          Submit Request
+        </a>
+        <a href="{% url 'messages' %}" class="nav-item" data-path="/messages/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+          Messages <span class="nav-badge-count">3</span>
+        </a>
+        <a href="{% url 'community:feed' %}" class="nav-item" data-path="/community/">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
+          Community
+        </a>
+      {% endif %}
+
+      <!-- Shared account — all roles -->
+      <div class="nav-section-label">Account</div>
+      <a href="{% url 'profile' %}" class="nav-item" data-path="/profile/">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+        Profile
+      </a>
+      <a href="{% url 'password_change' %}" class="nav-item" data-path="/password-change/">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+        Security
+      </a>
+
+    </div><!-- end sidebar-nav -->
+    
+    <!-- BOT: theme + user + logout — never scrolls -->
+    <div class="sidebar-bot">
+      <div class="theme-toggle" id="themeToggle">
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span class="toggle-label">Dark mode</span>
+      </div>
+      <div class="user-block">
+        <div class="avatar-circle">{{ user.username|first|upper }}{% if user.last_name %}{{ user.last_name|first|upper }}{% endif %}</div>
+        <div style="min-width:0;">
+          <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+          <div class="user-role">{{ user.role }}</div>
+        </div>
+      </div>
+      <form method="post" action="{% url 'logout' %}" style="margin-top:4px;">
+        {% csrf_token %}
+        <button type="submit" class="logout-link" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M10 11l4-3-4-3M14 8H6"/></svg>
+          Logout
+        </button>
+      </form>
+    </div>
+
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="main-content">
+    <div class="mobile-topbar">
+      <button class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></button>
+      <a href="{% url 'dashboard' %}" class="mobile-logo">Estāte</a>
+      <div class="avatar-circle" style="font-size:10px;">{{ user.username|first|upper }}</div>
+    </div>
+    <div class="page-wrapper">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert-estate {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const html = document.documentElement;
+  if (localStorage.getItem('estate-theme') === 'dark') html.setAttribute('data-theme','dark');
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const d = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', d ? 'light' : 'dark');
+    localStorage.setItem('estate-theme', d ? 'light' : 'dark');
+  });
+
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-item[data-path]').forEach(link => {
+    const p = link.getAttribute('data-path');
+    const isActive = p === '/' ? currentPath === '/' : currentPath.startsWith(p);
+    if (isActive) link.classList.add('active');
+  });
+
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  document.getElementById('hamburgerBtn').addEventListener('click', () => {
+    sidebar.classList.add('open'); overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  });
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open'); overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  });
+  sidebar.querySelectorAll('.nav-item,.logout-link').forEach(l => {
+    l.addEventListener('click', () => {
+      if (window.innerWidth <= 900) {
+        sidebar.classList.remove('open'); overlay.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

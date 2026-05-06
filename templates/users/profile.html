@@ -1,0 +1,634 @@
+{% extends "base.html" %}
+{% block title %}Profile — Estāte{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+<style>
+  .profile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ── LAYOUT ── */
+  .profile-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* ── LEFT CARD ── */
+  .profile-id-card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: sticky;
+    top: 24px;
+  }
+
+  .profile-cover {
+    height: 80px;
+    background: var(--role-color);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .profile-cover::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .profile-cover::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: 20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .profile-avatar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 20px 20px;
+    margin-top: -28px;
+    position: relative;
+  }
+
+  .profile-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-card);
+    background: var(--role-color);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: #fff;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+
+  .avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .profile-avatar:hover .avatar-edit-overlay { opacity: 1; }
+  .avatar-edit-overlay svg { width: 16px; height: 16px; color: #fff; }
+
+  .profile-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    color: var(--text-primary);
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .profile-username {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    text-align: center;
+  }
+
+  .profile-role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--role-badge-bg, #1A1A1A);
+    color: var(--role-badge-text, #fff);
+    margin-top: 10px;
+    text-transform: capitalize;
+    letter-spacing: 0.4px;
+  }
+
+  .profile-role-pill svg { width: 10px; height: 10px; }
+
+  .profile-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 0.5px solid var(--border-light);
+    margin-top: 16px;
+  }
+
+  .profile-stat {
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .profile-stat + .profile-stat {
+    border-left: 0.5px solid var(--border-light);
+  }
+
+  .profile-stat-val { font-size: 16px; font-weight: 500; color: var(--text-primary); }
+  .profile-stat-lbl { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+
+  .profile-info-list {
+    padding: 14px 16px;
+    border-top: 0.5px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profile-info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .profile-info-row svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--text-tertiary); }
+  .profile-info-val { color: var(--text-primary); font-weight: 400; }
+
+  .profile-joined {
+    padding: 12px 16px;
+    border-top: 0.5px solid var(--border-light);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-align: center;
+  }
+
+  /* ── RIGHT COLUMN ── */
+  .profile-right { display: flex; flex-direction: column; gap: 14px; }
+
+  /* Form card */
+  .form-card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .form-section {
+    padding: 20px 22px;
+    border-bottom: 0.5px solid var(--border-light);
+  }
+
+  .form-section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .section-label svg { width: 13px; height: 13px; }
+
+  .field-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .f-group { margin-bottom: 14px; }
+  .f-group:last-child { margin-bottom: 0; }
+
+  .f-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.2px;
+  }
+
+  .f-wrap { position: relative; }
+
+  .f-icon {
+    position: absolute;
+    left: 11px; top: 50%;
+    transform: translateY(-50%);
+    width: 14px; height: 14px;
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+
+  .f-input, .f-select {
+    width: 100%;
+    padding: 9px 12px 9px 34px;
+    border: 0.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    appearance: none;
+  }
+
+  .f-input:focus, .f-select:focus {
+    border-color: var(--role-color);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+    background: var(--bg-card);
+  }
+
+  [data-theme="dark"] .f-input:focus,
+  [data-theme="dark"] .f-select:focus {
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+  }
+
+  .f-select {
+    padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3l3 4 3-4' stroke='%23A9A8A5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  /* Role selector — visual cards */
+  .role-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .role-option { display: none; }
+
+  .role-option-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 10px;
+    border: 0.5px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: center;
+  }
+
+  .role-option-label:hover { background: var(--bg-secondary); }
+
+  .role-option:checked + .role-option-label {
+    border-color: var(--role-color);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 2px var(--role-color);
+  }
+
+  .role-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-page);
+  }
+
+  .role-icon svg { width: 16px; height: 16px; color: var(--text-secondary); }
+  .role-option:checked + .role-option-label .role-icon { background: var(--role-color); }
+  .role-option:checked + .role-option-label .role-icon svg { color: #fff; }
+
+  .role-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+  .role-desc { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+
+  /* Danger zone */
+  .danger-zone {
+    background: var(--bg-card);
+    border: 0.5px solid var(--red-text);
+    border-radius: var(--radius-lg);
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .danger-title { font-size: 13px; font-weight: 500; color: var(--red-text); margin-bottom: 2px; }
+  .danger-sub   { font-size: 12px; color: var(--text-secondary); }
+
+  .btn-danger {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 12px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    border: 0.5px solid var(--red-text);
+    background: var(--red-bg);
+    color: var(--red-text);
+    transition: background 0.15s;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .btn-danger:hover { background: var(--red-text); color: #fff; }
+  .btn-danger svg { width: 14px; height: 14px; }
+
+  /* Submit bar */
+  .submit-bar {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .submit-bar-info { font-size: 12px; color: var(--text-secondary); }
+  .submit-actions { display: flex; gap: 8px; }
+
+  @media (max-width: 900px) {
+    .profile-layout { grid-template-columns: 1fr; }
+    .profile-id-card { position: static; }
+  }
+
+  @media (max-width: 600px) {
+    .field-row-2 { grid-template-columns: 1fr; }
+    .role-selector { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- Page header -->
+<div class="profile-header">
+  <div>
+    <div class="page-title">My Profile</div>
+    <div class="page-sub">Manage your personal information and preferences</div>
+  </div>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert-estate {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}" style="margin-bottom:16px;">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="profile-layout">
+
+  <!-- ── LEFT: Identity card ── -->
+  <div class="profile-id-card">
+    <div class="profile-cover"></div>
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar">
+        {{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}
+        <div class="avatar-edit-overlay">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3l9-9z"/></svg>
+        </div>
+      </div>
+      <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+      <div class="profile-username">@{{ user.username }}</div>
+
+      <div class="profile-role-pill">
+        {% if user.role == 'landlord' %}
+          <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 1L1 4.5V11h4V8h2v3h4V4.5L6 1z"/></svg> Landlord
+        {% elif user.role == 'agent' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="4" r="2.5"/><path d="M1 11c0-2.8 2.2-4 5-4s5 1.2 5 4"/></svg> Agent
+        {% elif user.role == 'tenant' %}
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="8" height="6" rx="1"/><path d="M4 5V4a2 2 0 014 0v1"/></svg> Tenant
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+<!-- Quick stats -->
+<div class="profile-stats">
+    {% if user.role == 'landlord' %}
+        <div class="profile-stat">
+            <div class="profile-stat-val">{{ stats.properties_count|default:0 }}</div>
+            <div class="profile-stat-lbl">Properties</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-val">{{ stats.tenants_count|default:0 }}</div>
+            <div class="profile-stat-lbl">Tenants</div>
+        </div>
+
+    {% elif user.role == 'agent' %}
+        <div class="profile-stat">
+            <div class="profile-stat-val">{{ stats.listings_count|default:0 }}</div>
+            <div class="profile-stat-lbl">Listings</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-val">{{ stats.clients_count|default:0 }}</div>
+            <div class="profile-stat-lbl">Clients</div>
+        </div>
+
+    {% elif user.role == 'tenant' %}
+        <div class="profile-stat">
+            <div class="profile-stat-val">{{ stats.payments_count|default:0 }}</div>
+            <div class="profile-stat-lbl">Payments</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-val">{{ stats.requests_count|default:0 }}</div>
+            <div class="profile-stat-lbl">Requests</div>
+        </div>
+    {% endif %}
+</div>
+    <!-- Quick info -->
+    <div class="profile-info-list">
+      {% if user.email %}
+      <div class="profile-info-row">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+        <span class="profile-info-val">{{ user.email }}</span>
+      </div>
+      {% endif %}
+      {% if user.phone %}
+      <div class="profile-info-row">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h3l1.5 3.5-1.8 1.1a9 9 0 004.7 4.7l1.1-1.8L15 11v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z"/></svg>
+        <span class="profile-info-val">{{ user.phone }}</span>
+      </div>
+      {% endif %}
+      {% if user.birth_date %}
+      <div class="profile-info-row">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
+        <span class="profile-info-val">{{ user.birth_date }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="profile-joined">
+      Member since {{ user.date_joined|date:"F Y" }}
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Form ── -->
+  <div class="profile-right">
+    <form method="POST">
+      {% csrf_token %}
+
+      <!-- Personal info -->
+      <div class="form-card">
+        <div class="form-section">
+          <div class="section-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+            Personal information
+          </div>
+
+          <div class="field-row-2">
+            <div class="f-group">
+              <label class="f-label">First name</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+                <input type="text" name="first_name" class="f-input"
+                       placeholder="Adam"
+                       value="{{ user.first_name }}" />
+              </div>
+            </div>
+            <div class="f-group">
+              <label class="f-label">Last name</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+                <input type="text" name="last_name" class="f-input"
+                       placeholder="Harrak"
+                       value="{{ user.last_name }}" />
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row-2">
+            <div class="f-group">
+              <label class="f-label">Username</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M8 5v4M6 7h4"/></svg>
+                {{ form.username }}
+              </div>
+            </div>
+            <div class="f-group">
+              <label class="f-label">Email address</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+                {{ form.email }}
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row-2">
+            <div class="f-group" style="margin-bottom:0;">
+              <label class="f-label">Phone number</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h3l1.5 3.5-1.8 1.1a9 9 0 004.7 4.7l1.1-1.8L15 11v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z"/></svg>
+                {{ form.phone }}
+              </div>
+            </div>
+            <div class="f-group" style="margin-bottom:0;">
+              <label class="f-label">Date of birth</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
+                {{ form.birth_date }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Role selector -->
+        <div class="form-section">
+          <div class="section-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+            Account role
+          </div>
+
+          <div class="role-selector">
+            <!-- Landlord -->
+            <div>
+              <input type="radio" name="role" value="landlord" id="role_landlord" class="role-option"
+                     {% if user.role == 'landlord' %}checked{% endif %} />
+              <label for="role_landlord" class="role-option-label">
+                <div class="role-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
+                </div>
+                <div class="role-name">Landlord</div>
+                <div class="role-desc">Own & manage properties</div>
+              </label>
+            </div>
+
+            <!-- Agent -->
+            <div>
+              <input type="radio" name="role" value="agent" id="role_agent" class="role-option"
+                     {% if user.role == 'agent' %}checked{% endif %} />
+              <label for="role_agent" class="role-option-label">
+                <div class="role-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+                </div>
+                <div class="role-name">Agent</div>
+                <div class="role-desc">List & manage clients</div>
+              </label>
+            </div>
+
+            <!-- Tenant -->
+            <div>
+              <input type="radio" name="role" value="tenant" id="role_tenant" class="role-option"
+                     {% if user.role == 'tenant' %}checked{% endif %} />
+              <label for="role_tenant" class="role-option-label">
+                <div class="role-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
+                </div>
+                <div class="role-name">Tenant</div>
+                <div class="role-desc">Manage your lease</div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit bar -->
+      <div class="submit-bar">
+        <div class="submit-info" style="font-size:12px;color:var(--text-secondary);">
+          Last updated: {{ user.date_joined|date:"M d, Y" }}
+        </div>
+        <div class="submit-actions">
+          <button type="reset" class="btn-estate">Discard changes</button>
+          <button type="submit" class="btn-estate primary">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h10M8 4l4 4-4 4"/></svg>
+            Save changes
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Danger zone -->
+    <div class="danger-zone">
+      <div>
+        <div class="danger-title">Delete account</div>
+        <div class="danger-sub">Permanently remove your account and all associated data. This cannot be undone.</div>
+      </div>
+      <button class="btn-danger">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/></svg>
+        Delete account
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Style the Django form widgets to match our design
+  document.querySelectorAll('.f-wrap input, .f-wrap select').forEach(el => {
+    // Add our classes if Django rendered plain inputs
+    if (!el.classList.contains('f-input') && !el.classList.contains('f-select')) {
+      el.classList.add(el.tagName === 'SELECT' ? 'f-select' : 'f-input');
+    }
+  });
+</script>
+{% endblock %}

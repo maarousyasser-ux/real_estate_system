@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="page-title">Tenants</h1>
+      <p class="page-sub">Manage your active residents and lease terms</p>
+    </div>
+    <a href="#" class="btn-estate primary">+ Add Tenant</a>
+  </div>
+
+  <div class="card">
+    <table class="estate-table">
+      <thead>
+        <tr>
+          <th>Tenant Name</th>
+          <th>Property</th>
+          <th>Lease End</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tenant in tenants %}
+        <tr>
+          <td>{{ tenant.user.get_full_name }}</td>
+          <td class="muted">{{ tenant.property.title }}</td>
+          <td>{{ tenant.lease_end }}</td>
+          <td>
+            <span class="pill {% if tenant.is_active %}paid{% else %}overdue{% endif %}">
+              {% if tenant.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </td>
+          <td class="text-end">
+            <a href="#" class="btn-estate">View Profile</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center py-4">No tenants found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
