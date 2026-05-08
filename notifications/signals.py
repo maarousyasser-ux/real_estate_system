@@ -11,18 +11,21 @@ from channels.layers import get_channel_layer
 from .services import create_notification
 
 
-
-
+# =========================================================
+# CONTRACT CREATED
+# =========================================================
 
 @receiver(post_save, sender=Contract)
 def contract_created(sender, instance, created, **kwargs):
+
     if not created:
         return
 
     contract = instance
 
-    # Tenant
+    # Notify tenant
     if contract.tenant and contract.tenant.user:
+
         create_notification(
             contract.tenant.user,
             "New Lease Created",
@@ -30,8 +33,9 @@ def contract_created(sender, instance, created, **kwargs):
             type="contract"
         )
 
-    # Agent
+    # Notify agent
     if contract.agent:
+
         create_notification(
             contract.agent,
             "New Contract Assigned",
@@ -39,90 +43,129 @@ def contract_created(sender, instance, created, **kwargs):
             type="contract"
         )
 
-    # Landlord
+    # Notify landlord
     if contract.landlord:
+
         create_notification(
             contract.landlord,
             "Property Rented",
             f"{contract.property.title} is now occupied",
             type="contract"
         )
-        
-        
+
+
+# =========================================================
+# CONTRACT DELETED
+# =========================================================
+
 @receiver(post_delete, sender=Contract)
 def contract_deleted(sender, instance, **kwargs):
+
     contract = instance
 
     if contract.tenant and contract.tenant.user:
+
         create_notification(
             contract.tenant.user,
             "Lease Terminated",
             f"Your lease for {contract.property.title} was ended",
             type="contract"
         )
-        
+
+
+# =========================================================
+# TENANT ASSIGNED
+# =========================================================
+
 @receiver(post_save, sender=Tenant)
 def tenant_assigned(sender, instance, created, **kwargs):
+
     if not created:
         return
 
     tenant = instance
 
     if tenant.user:
+
         create_notification(
             tenant.user,
             "Tenant Profile Created",
             f"You were assigned to {tenant.property.title if tenant.property else 'a property'}",
             type="tenant"
         )
-        
-        
-        
-        
-        
-        
-        
+
+
+# =========================================================
+# MAINTENANCE REQUEST CREATED
+# =========================================================
+
 @receiver(post_save, sender=MaintenanceRequest)
 def maintenance_created(sender, instance, created, **kwargs):
+
     if not created:
         return
 
     req = instance
 
-    # Tenant
-    if req.created_by:
+    # =====================================================
+    # Notify tenant
+    # =====================================================
+
+    if req.tenant:
+
         create_notification(
-            req.created_by,
+            req.tenant,
             "Maintenance Request Sent",
             f"Your request '{req.title}' was submitted",
             type="maintenance"
         )
 
-    # Agent / landlord
-    contract = req.contract
+    # =====================================================
+    # Notify agent + landlord
+    # =====================================================
 
-    if contract.agent:
-        create_notification(
-            contract.agent,
-            "New Maintenance Request",
-            req.title,
-            type="maintenance"
+    contract = getattr(req, 'contract', None)
+
+    if contract:
+
+        # Agent
+        if contract.agent:
+
+            create_notification(
+                contract.agent,
+                "New Maintenance Request",
+                f"{req.title}",
+                type="maintenance"
+            )
+
+        # Landlord
+        if contract.landlord:
+
+            create_notification(
+                contract.landlord,
+                "New Maintenance Request",
+                f"{req.title}",
+                type="maintenance"
+            )
+
+    else:
+
+        # Fallback:
+        # notify all agents/landlords if no contract relation
+
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+
+        staff_users = User.objects.filter(
+            role__in=['agent', 'landlord']
         )
 
-    if contract.landlord:
-        create_notification(
-            contract.landlord,
-            "New Maintenance Request",
-            req.title,
-            type="maintenance"
-        )
-        
-        
-        
-        
-        
-        
-        
-        
-        
-   
+        for user in staff_users:
+
+            create_notification(
+                user,
+                "New Maintenance Request",
+                f"{req.title}",
+                type="maintenance"
+            )

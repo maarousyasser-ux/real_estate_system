@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% block title %}Maintenance · Estāte{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+
+  <div>
+    <div class="page-title">Maintenance</div>
+
+    <div class="page-sub">
+      {% if user.role == 'tenant' %}
+        Your submitted maintenance requests
+      {% else %}
+        Tenant maintenance requests across your properties
+      {% endif %}
+    </div>
+  </div>
+
+  {% if user.role == 'tenant' %}
+  <a href="{% url 'maintenance:create' %}" class="btn-estate primary">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M8 2v12M2 8h12"/>
+    </svg>
+    New Request
+  </a>
+  {% endif %}
+
+</div>
+
+<!-- Staff stat cards -->
+{% if is_staff and counts %}
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-bottom:24px;">
+
+  <div class="card" style="padding:16px;">
+    <div style="font-size:22px; font-family:'DM Serif Display',serif;">
+      {{ counts.total }}
+    </div>
+    <div style="font-size:11px; color:var(--text-secondary); margin-top:3px;">
+      Total
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px;">
+    <div style="font-size:22px; font-family:'DM Serif Display',serif; color:var(--amber-text);">
+      {{ counts.pending }}
+    </div>
+    <div style="font-size:11px; color:var(--text-secondary); margin-top:3px;">
+      Pending
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px;">
+    <div style="font-size:22px; font-family:'DM Serif Display',serif; color:var(--blue-text);">
+      {{ counts.in_progress }}
+    </div>
+    <div style="font-size:11px; color:var(--text-secondary); margin-top:3px;">
+      In Progress
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px;">
+    <div style="font-size:22px; font-family:'DM Serif Display',serif; color:var(--green-text);">
+      {{ counts.resolved }}
+    </div>
+    <div style="font-size:11px; color:var(--text-secondary); margin-top:3px;">
+      Resolved
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px;">
+    <div style="font-size:22px; font-family:'DM Serif Display',serif; color:var(--red-text);">
+      {{ counts.urgent }}
+    </div>
+    <div style="font-size:11px; color:var(--text-secondary); margin-top:3px;">
+      Urgent
+    </div>
+  </div>
+
+</div>
+{% endif %}
+
+<!-- Filters -->
+<form method="get"
+      style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
+
+  {% with sel_style="padding:6px 10px; border-radius:var(--radius-sm); border:0.5px solid var(--border-medium); background:var(--bg-card); color:var(--text-primary); font-size:12px; font-family:'DM Sans',sans-serif;" %}
+
+  <select name="status"
+          onchange="this.form.submit()"
+          style="{{ sel_style }}">
+    <option value="">All Statuses</option>
+
+    {% for val, label in status_choices %}
+      <option value="{{ val }}"
+              {% if current_status == val %}selected{% endif %}>
+        {{ label }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <select name="priority"
+          onchange="this.form.submit()"
+          style="{{ sel_style }}">
+    <option value="">All Priorities</option>
+
+    {% for val, label in priority_choices %}
+      <option value="{{ val }}"
+              {% if current_priority == val %}selected{% endif %}>
+        {{ label }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <select name="category"
+          onchange="this.form.submit()"
+          style="{{ sel_style }}">
+    <option value="">All Categories</option>
+
+    {% for val, label in category_choices %}
+      <option value="{{ val }}"
+              {% if current_category == val %}selected{% endif %}>
+        {{ label }}
+      </option>
+    {% endfor %}
+  </select>
+
+  {% endwith %}
+
+  <input type="text"
+         name="q"
+         value="{{ search }}"
+         placeholder="Search…"
+         style="padding:6px 10px; border-radius:var(--radius-sm); border:0.5px solid var(--border-medium); background:var(--bg-card); color:var(--text-primary); font-size:12px; font-family:'DM Sans',sans-serif; min-width:150px;">
+
+  <button type="submit" class="btn-estate">
+    Search
+  </button>
+
+  {% if current_status or current_priority or current_category or search %}
+    <a href="{% url 'maintenance:list' %}" class="btn-estate">
+      ✕ Clear
+    </a>
+  {% endif %}
+
+</form>
+
+<!-- Requests table -->
+<div class="card" style="padding:0; overflow:hidden;">
+
+  {% if page_obj.object_list %}
+
+  <div style="overflow-x:auto;">
+
+    <table class="estate-table">
+
+      <thead>
+        <tr>
+          <th style="padding:14px 20px 10px;">#</th>
+          <th style="padding:14px 12px 10px;">Title</th>
+          <th style="padding:14px 12px 10px;">Category</th>
+          <th style="padding:14px 12px 10px;">Priority</th>
+          <th style="padding:14px 12px 10px;">Status</th>
+
+          {% if user.role != 'tenant' %}
+          <th style="padding:14px 12px 10px;">Tenant</th>
+          {% endif %}
+
+          <th style="padding:14px 12px 10px;">Date</th>
+          <th style="padding:14px 20px 10px;"></th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        {% for req in page_obj %}
+        <tr>
+
+          <td class="muted" style="padding:12px 20px; font-size:11px;">
+            #{{ req.pk }}
+          </td>
+
+          <td style="padding:12px;">
+            <a href="{% url 'maintenance:detail' req.pk %}"
+               style="font-weight:500; color:var(--text-primary); text-decoration:none;">
+              {{ req.title }}
+            </a>
+          </td>
+
+          <td class="muted" style="padding:12px;">
+            {{ req.get_category_display }}
+          </td>
+
+          <td style="padding:12px;">
+
+            {% if req.priority == 'low' %}
+              <span class="pill paid">Low</span>
+
+            {% elif req.priority == 'medium' %}
+              <span class="pill open">Medium</span>
+
+            {% elif req.priority == 'high' %}
+              <span class="pill progress">High</span>
+
+            {% elif req.priority == 'urgent' %}
+              <span class="pill overdue">Urgent</span>
+            {% endif %}
+
+          </td>
+
+          <td style="padding:12px;">
+
+            {% if req.status == 'pending' %}
+              <span class="pill pending">Pending</span>
+
+            {% elif req.status == 'in_progress' %}
+              <span class="pill open">In Progress</span>
+
+            {% elif req.status == 'resolved' %}
+              <span class="pill paid">Resolved</span>
+
+            {% elif req.status == 'closed' %}
+              <span class="pill"
+                    style="background:var(--bg-secondary); color:var(--text-tertiary);">
+                Closed
+              </span>
+            {% endif %}
+
+          </td>
+
+          {% if user.role != 'tenant' %}
+          <td class="muted" style="padding:12px;">
+            {{ req.tenant.get_full_name|default:req.tenant.username }}
+          </td>
+          {% endif %}
+
+          <td class="muted" style="padding:12px;">
+            {{ req.created_at|date:"M d, Y" }}
+          </td>
+
+          <td style="padding:12px 20px;">
+            <a href="{% url 'maintenance:detail' req.pk %}"
+               class="btn-estate"
+               style="padding:5px 12px; font-size:11px;">
+              View →
+            </a>
+          </td>
+
+        </tr>
+        {% endfor %}
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:0.5px solid var(--border-light);">
+
+    <span style="font-size:11px; color:var(--text-tertiary);">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    <div style="display:flex; gap:4px;">
+
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}"
+         class="btn-estate"
+         style="padding:5px 10px;">
+        ‹
+      </a>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+      <a href="?page={{ num }}"
+         class="btn-estate {% if num == page_obj.number %}primary{% endif %}"
+         style="padding:5px 10px; min-width:28px; text-align:center;">
+        {{ num }}
+      </a>
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}"
+         class="btn-estate"
+         style="padding:5px 10px;">
+        ›
+      </a>
+      {% endif %}
+
+    </div>
+
+  </div>
+
+  {% endif %}
+
+  {% else %}
+
+  <!-- Empty state -->
+  <div style="text-align:center; padding:56px 20px;">
+
+    <svg viewBox="0 0 40 40"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="1.2"
+         style="width:36px;height:36px;opacity:.25;display:block;margin:0 auto 14px;">
+
+      <path d="M33 6l-5 5-4-4 5-5a7.5 7.5 0 00-10 10L8 25a5 5 0 007 7l11-11a7.5 7.5 0 0010-11z"/>
+
+    </svg>
+
+    <div style="font-size:13px; font-weight:500; color:var(--text-primary); margin-bottom:6px;">
+      No requests found
+    </div>
+
+    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:20px;">
+
+      {% if current_status or current_priority or search %}
+        Try clearing your filters.
+      {% else %}
+        No maintenance requests available.
+      {% endif %}
+
+    </div>
+
+    {% if user.role == 'tenant' %}
+    <a href="{% url 'maintenance:create' %}" class="btn-estate primary">
+      + New Request
+    </a>
+    {% endif %}
+
+  </div>
+
+  {% endif %}
+
+</div>
+
+{% endblock %}

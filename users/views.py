@@ -15,12 +15,19 @@ from django.db.models import Sum
 from .forms import CustomUserCreationForm
 
 
+from maintenance.models import MaintenanceRequest
+
 from notifications.models import Notification
 
 def get_user_notifications(user):
     return Notification.objects.filter(user=user).order_by("-created_at")
 
 User = get_user_model()
+
+
+
+
+
 @login_required
 def dashboard_view(request):
 
@@ -153,3 +160,37 @@ def messages_view(request):
 def community_view(request):
     # This matches the 'community' path in your URLs
     return render(request, 'community/feed.html')
+
+
+
+@login_required
+def maintenance_dashboard(request):
+
+    user = request.user
+
+    if user.role == "tenant":
+        requests = MaintenanceRequest.objects.filter(
+            tenant__user=user
+        )
+
+    elif user.role == "landlord":
+        requests = MaintenanceRequest.objects.filter(
+            property__owner=user
+        )
+
+    else:  # agent
+        requests = MaintenanceRequest.objects.filter(
+            property__agent=user
+        )
+
+    print("DEBUG COUNT:", requests.count())  # 🔍 important
+
+    return render(request, "maintenance/dashboard.html", {
+        "requests": requests
+    })
+    
+    
+    
+    
+    
+    

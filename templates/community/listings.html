@@ -1,154 +1,220 @@
 {% extends "base.html" %}
-{% block title %}Property Listings{% endblock %}
+{% block title %}Community Listings — Estāte{% endblock %}
+
+{% block extra_head %}
+<style>
+  .listings-top { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .filter-bar { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+  .filter-input { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:8px 14px; font-size:12px; color:var(--text-primary); font-family:'DM Sans',sans-serif; }
+  .filter-input:focus { outline:none; border-color:var(--border-medium); }
+  .filter-select { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:8px 14px; font-size:12px; color:var(--text-primary); font-family:'DM Sans',sans-serif; cursor:pointer; }
+  .filter-select:focus { outline:none; }
+
+  .listings-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+
+  .listing-card { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); overflow:hidden; transition:border-color .2s, transform .15s; }
+  .listing-card:hover { border-color:var(--border-medium); transform:translateY(-2px); }
+  .listing-img { width:100%; height:180px; object-fit:cover; background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); }
+  .listing-img-placeholder { display:flex; align-items:center; justify-content:center; }
+  .listing-img-placeholder svg { width:36px; height:36px; opacity:.3; }
+  .listing-body { padding:16px; }
+  .listing-price { font-family:'DM Serif Display',serif; font-size:22px; color:var(--text-primary); margin-bottom:4px; }
+  .listing-price span { font-size:12px; font-family:'DM Sans',sans-serif; color:var(--text-tertiary); font-weight:400; }
+  .listing-title { font-size:13px; font-weight:500; color:var(--text-primary); margin-bottom:6px; }
+  .listing-loc { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-tertiary); margin-bottom:12px; }
+  .listing-loc svg { width:12px; height:12px; flex-shrink:0; }
+  .listing-specs { display:flex; gap:14px; margin-bottom:14px; }
+  .listing-spec { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-secondary); }
+  .listing-spec svg { width:12px; height:12px; opacity:.6; }
+  .listing-footer { display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:0.5px solid var(--border-light); }
+  .listing-author-avatar { width:28px; height:28px; border-radius:50%; background:var(--role-color); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:#fff; flex-shrink:0; }
+  .listing-author-avatar.agent { background:var(--blue-text); }
+  .listing-author-name { font-size:11px; color:var(--text-secondary); flex:1; }
+  .save-btn { background:none; border:0.5px solid var(--border-light); border-radius:var(--radius-sm); width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); transition:background .15s, color .15s; }
+  .save-btn:hover, .save-btn.saved { background:var(--amber-bg); color:var(--amber-text); border-color:var(--amber-text); }
+  .save-btn svg { width:13px; height:13px; }
+  .save-btn.saved svg { fill:currentColor; }
+
+  /* Create listing modal */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:560px; margin:0 20px; overflow:hidden; max-height:90vh; overflow-y:auto; }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:0.5px solid var(--border-light); position:sticky; top:0; background:var(--bg-card); }
+  .modal-title { font-family:'DM Serif Display',serif; font-size:18px; color:var(--text-primary); }
+  .modal-close { width:30px; height:30px; border-radius:var(--radius-sm); background:var(--bg-secondary); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); }
+  .modal-close:hover { background:var(--border-light); }
+  .modal-body { padding:20px; }
+  .form-label { font-size:11px; font-weight:600; color:var(--text-tertiary); letter-spacing:.5px; text-transform:uppercase; display:block; margin-bottom:6px; }
+  .form-control { width:100%; background:var(--bg-secondary); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:10px 14px; font-size:13px; color:var(--text-primary); font-family:'DM Sans',sans-serif; margin-bottom:14px; }
+  .form-control:focus { outline:none; border-color:var(--border-medium); }
+  textarea.form-control { min-height:80px; resize:vertical; line-height:1.5; }
+  .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; padding:14px 20px; border-top:0.5px solid var(--border-light); position:sticky; bottom:0; background:var(--bg-card); }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4">
-  <h5 class="fw-700 mb-0">Property Listings</h5>
-  {% if profile.role in 'landlord,agent' %}
-  <a href="{% url 'community:create_listing' %}" class="btn btn-primary btn-sm rounded-pill px-3">
-    <i class="bi bi-plus-lg me-1"></i>Add Listing
-  </a>
-  {% endif %}
-</div>
-
-<!-- Filters -->
-<div class="ec-card mb-4">
-  <div class="ec-card-body">
-    <form method="get" class="d-flex gap-3 flex-wrap align-items-end">
-      <div class="flex-grow-1">
-        <label class="form-label small fw-600 text-muted mb-1">Search</label>
-        <div class="input-group">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Title or location..." value="{{ search }}">
-        </div>
-      </div>
-      <div>
-        <label class="form-label small fw-600 text-muted mb-1">Type</label>
-        <select name="type" class="form-select">
-          <option value="">All Types</option>
-          {% for val, label in listing_types %}
-          <option value="{{ val }}" {% if active_type == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div>
-        <label class="form-label small fw-600 text-muted mb-1">Property</label>
-        <select name="property" class="form-select">
-          <option value="">All Properties</option>
-          {% for val, label in property_types %}
-          <option value="{{ val }}" {% if active_property == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div>
-        <button type="submit" class="btn btn-primary rounded-pill px-4">Filter</button>
-        <a href="{% url 'community:listings' %}" class="btn btn-light rounded-pill px-3 ms-1">Reset</a>
-      </div>
-    </form>
+<div class="listings-top">
+  <div>
+    <h1 class="page-title">Community Listings</h1>
+    <p class="page-sub">Properties shared by members of the community</p>
   </div>
+  <button class="btn-estate primary" onclick="document.getElementById('listingModal').classList.add('open')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+    Share Listing
+  </button>
 </div>
 
-<!-- Listing Grid -->
-<div class="row g-3">
+<form method="get" class="filter-bar">
+  <input type="text" name="q" class="filter-input" placeholder="Search listings…" value="{{ request.GET.q }}" style="flex:1;min-width:180px;">
+  <select name="type" class="filter-select">
+    <option value="">All Types</option>
+    <option value="apartment" {% if request.GET.type == 'apartment' %}selected{% endif %}>Apartment</option>
+    <option value="house" {% if request.GET.type == 'house' %}selected{% endif %}>House</option>
+    <option value="studio" {% if request.GET.type == 'studio' %}selected{% endif %}>Studio</option>
+    <option value="commercial" {% if request.GET.type == 'commercial' %}selected{% endif %}>Commercial</option>
+  </select>
+  <select name="sort" class="filter-select">
+    <option value="newest">Newest</option>
+    <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>Price ↑</option>
+    <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>Price ↓</option>
+  </select>
+  <button type="submit" class="btn-estate primary">Search</button>
+</form>
+
+<div class="listings-grid">
   {% for listing in listings %}
-  <div class="col-md-6">
-    <div class="ec-card listing-card h-100">
-      <!-- Image -->
-      {% if listing.image %}
-        <img src="{{ listing.image.url }}" class="listing-img" alt="{{ listing.title }}" />
-      {% else %}
-        <div class="listing-img-placeholder">🏠</div>
-      {% endif %}
+  <div class="listing-card">
+    {% if listing.image %}
+    <img src="{{ listing.image.url }}" alt="{{ listing.title }}" class="listing-img">
+    {% else %}
+    <div class="listing-img listing-img-placeholder" style="height:180px;">
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 38V20l16-12 16 12v18H8z"/><rect x="18" y="28" width="12" height="10" rx="1"/></svg>
+    </div>
+    {% endif %}
 
-      <div class="ec-card-body">
-        <!-- Badges -->
-        <div class="d-flex gap-2 mb-2 flex-wrap">
-          <span class="badge bg-{{ listing.listing_color }} rounded-pill">{{ listing.get_listing_type_display }}</span>
-          <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">{{ listing.get_property_type_display }}</span>
-        </div>
-
-        <h6 class="fw-700 mb-1">{{ listing.title }}</h6>
-        <div class="text-muted small mb-2"><i class="bi bi-geo-alt me-1"></i>{{ listing.location }}</div>
-
-        <p class="text-muted small mb-3" style="line-height:1.5;">{{ listing.description|truncatechars:90 }}</p>
-
-        <!-- Stats row -->
-        <div class="d-flex gap-3 mb-3">
-          <div class="text-muted-sm"><i class="bi bi-door-open me-1"></i>{{ listing.bedrooms }} bd</div>
-          <div class="text-muted-sm"><i class="bi bi-water me-1"></i>{{ listing.bathrooms }} ba</div>
-          {% if listing.area_sqm %}<div class="text-muted-sm"><i class="bi bi-arrows-angle-expand me-1"></i>{{ listing.area_sqm }} m²</div>{% endif %}
-        </div>
-
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="fw-700 text-primary" style="font-size:18px;">${{ listing.price }}<span class="text-muted fw-400" style="font-size:13px;">/mo</span></div>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-light rounded-circle save-btn"
-                    data-listing-id="{{ listing.id }}"
-                    onclick="toggleSave({{ listing.id }}, this)">
-              <i class="bi {% if profile in listing.saved_by.all %}bi-bookmark-fill text-primary{% else %}bi-bookmark{% endif %}"></i>
-            </button>
-            <a href="{% url 'community:conversation' username=listing.owner.user.username %}" class="btn btn-sm btn-primary rounded-pill px-3">
-              <i class="bi bi-chat me-1"></i>Contact
-            </a>
-          </div>
-        </div>
-
-        <!-- Owner -->
-        <div class="d-flex align-items-center gap-2 mt-3 pt-3" style="border-top:1px solid #f1f3f5;">
-          {% if listing.owner.avatar %}
-            <img src="{{ listing.owner.avatar.url }}" class="rounded-circle" style="width:28px;height:28px;object-fit:cover;" />
-          {% else %}
-            <div class="post-avatar-placeholder bg-role-{{ listing.owner.role }}" style="width:28px;height:28px;font-size:10px;border-radius:50%;">
-              {{ listing.owner.user.first_name|first|upper }}{{ listing.owner.user.last_name|first|upper }}{% if not listing.owner.user.first_name %}{{ listing.owner.user.username|slice:":2"|upper }}{% endif %}
-            </div>
-          {% endif %}
-          <a href="{% url 'community:profile' username=listing.owner.user.username %}" class="text-dark text-decoration-none" style="font-size:12px;font-weight:600;">
-            {{ listing.owner.user.get_full_name|default:listing.owner.user.username }}
-          </a>
-          <span class="role-pill role-{{ listing.owner.role }}" style="font-size:10px;">{{ listing.owner.get_role_display }}</span>
-          <span class="ms-auto text-muted-sm">{{ listing.created_at|timesince }} ago</span>
-        </div>
+    <div class="listing-body">
+      <div class="listing-price">
+        ${{ listing.price|floatformat:0 }}<span>/mo</span>
       </div>
+      <div class="listing-title">{{ listing.title }}</div>
+      <div class="listing-loc">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a4 4 0 014 4c0 4-4 8-4 8S4 10 4 6a4 4 0 014-4z"/><circle cx="8" cy="6" r="1.5"/></svg>
+        {{ listing.location|default:"Location not specified" }}
+      </div>
+      <div class="listing-specs">
+        {% if listing.bedrooms %}
+        <div class="listing-spec">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="7" width="14" height="7" rx="1"/><path d="M1 10h14M4 7V5a1 1 0 011-1h6a1 1 0 011 1v2"/></svg>
+          {{ listing.bedrooms }} bd
+        </div>
+        {% endif %}
+        {% if listing.bathrooms %}
+        <div class="listing-spec">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10v4a2 2 0 01-2 2H5a2 2 0 01-2-2V8zM3 8V4a1 1 0 012 0v1h8"/></svg>
+          {{ listing.bathrooms }} ba
+        </div>
+        {% endif %}
+        {% if listing.area %}
+        <div class="listing-spec">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/></svg>
+          {{ listing.area }} m²
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="listing-footer">
+      <div class="listing-author-avatar {{ listing.author.role }}">{{ listing.author.username|first|upper }}</div>
+      <div class="listing-author-name">{{ listing.author.get_full_name|default:listing.author.username }}</div>
+      <form method="post" action="{% url 'community:toggle_save_listing' listing.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="save-btn {% if request.user in listing.saved_by.all %}saved{% endif %}" title="Save listing">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10a1 1 0 011 1v10l-5-3-5 3V3a1 1 0 011-1z"/></svg>
+        </button>
+      </form>
     </div>
   </div>
   {% empty %}
-  <div class="col-12">
-    <div class="ec-card">
-      <div class="ec-card-body text-center py-5">
-        <i class="bi bi-building display-3 text-muted opacity-25 d-block mb-3"></i>
-        <h6 class="fw-600">No listings found</h6>
-        <p class="text-muted small mb-0">Try adjusting your filters.</p>
-      </div>
-    </div>
+  <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-tertiary);">
+    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin-bottom:16px;opacity:.3;"><path d="M8 38V20l16-12 16 12v18H8z"/><rect x="18" y="28" width="12" height="10" rx="1"/></svg>
+    <p style="font-size:13px;">No listings found.</p>
+    <button class="btn-estate primary" onclick="document.getElementById('listingModal').classList.add('open')" style="margin-top:16px;">Share the first listing</button>
   </div>
   {% endfor %}
 </div>
 
 <!-- Pagination -->
 {% if listings.has_other_pages %}
-<div class="d-flex justify-content-center gap-2 mt-4 mb-5">
-  {% if listings.has_previous %}
-    <a href="?page={{ listings.previous_page_number }}&type={{ active_type }}&property={{ active_property }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
-      <i class="bi bi-chevron-left"></i> Prev
-    </a>
-  {% endif %}
-  <span class="btn btn-sm btn-light rounded-pill disabled">{{ listings.number }} / {{ listings.paginator.num_pages }}</span>
-  {% if listings.has_next %}
-    <a href="?page={{ listings.next_page_number }}&type={{ active_type }}&property={{ active_property }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
-      Next <i class="bi bi-chevron-right"></i>
-    </a>
-  {% endif %}
+<div style="display:flex;justify-content:center;gap:8px;margin-top:24px;">
+  {% if listings.has_previous %}<a href="?page={{ listings.previous_page_number }}" class="btn-estate">← Prev</a>{% endif %}
+  <span style="padding:8px 16px;font-size:12px;color:var(--text-tertiary);">{{ listings.number }} / {{ listings.paginator.num_pages }}</span>
+  {% if listings.has_next %}<a href="?page={{ listings.next_page_number }}" class="btn-estate">Next →</a>{% endif %}
 </div>
 {% endif %}
-{% endblock %}
 
-{% block extra_js %}
+<!-- Create Listing Modal -->
+<div class="modal-overlay" id="listingModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Share a Listing</span>
+      <button class="modal-close" onclick="document.getElementById('listingModal').classList.remove('open')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4L4 12M4 4l8 8"/></svg>
+      </button>
+    </div>
+    <form method="post" action="{% url 'community:create_listing' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-body">
+        <label class="form-label">Title</label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Bright 2BR in City Centre" required>
+
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" placeholder="Describe the property…"></textarea>
+
+        <div class="form-row-2">
+          <div>
+            <label class="form-label">Price / month ($)</label>
+            <input type="number" name="price" class="form-control" placeholder="1500" min="0">
+          </div>
+          <div>
+            <label class="form-label">Type</label>
+            <select name="property_type" class="form-control">
+              <option value="apartment">Apartment</option>
+              <option value="house">House</option>
+              <option value="studio">Studio</option>
+              <option value="commercial">Commercial</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="form-label">Location</label>
+        <input type="text" name="location" class="form-control" placeholder="Neighbourhood, City">
+
+        <div class="form-row-2">
+          <div>
+            <label class="form-label">Bedrooms</label>
+            <input type="number" name="bedrooms" class="form-control" placeholder="2" min="0">
+          </div>
+          <div>
+            <label class="form-label">Bathrooms</label>
+            <input type="number" name="bathrooms" class="form-control" placeholder="1" min="0">
+          </div>
+        </div>
+
+        <label class="form-label">Photo</label>
+        <input type="file" name="image" class="form-control" accept="image/*" style="padding:8px 14px;">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-estate" onclick="document.getElementById('listingModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn-estate primary">Post Listing</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
-function toggleSave(listingId, btn) {
-  ajaxPost(`/community/listings/${listingId}/save/`, btn, (data) => {
-    const icon = btn.querySelector('i');
-    icon.className = data.saved ? 'bi bi-bookmark-fill text-primary' : 'bi bi-bookmark';
-  });
-}
+document.getElementById('listingModal').addEventListener('click', function(e){
+  if(e.target === this) this.classList.remove('open');
+});
 </script>
 {% endblock %}

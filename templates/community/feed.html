@@ -1,241 +1,347 @@
 {% extends "base.html" %}
-{% block title %}Feed{% endblock %}
+{% block title %}Community — Estāte{% endblock %}
+
+{% block extra_head %}
+<style>
+  .feed-layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
+  @media(max-width:960px){ .feed-layout { grid-template-columns: 1fr; } .feed-sidebar { display:none; } }
+
+  /* Create post box */
+  .composer { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); padding:18px; margin-bottom:20px; }
+  .composer-row { display:flex; align-items:center; gap:12px; }
+  .composer-input { flex:1; background:var(--bg-secondary); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:11px 16px; font-size:13px; color:var(--text-secondary); cursor:pointer; transition:border-color .15s, background .15s; font-family:'DM Sans',sans-serif; }
+  .composer-input:hover { border-color:var(--border-medium); background:var(--bg-card); }
+  .composer-actions { display:flex; gap:8px; margin-top:14px; padding-top:14px; border-top:0.5px solid var(--border-light); }
+  .composer-btn { display:flex; align-items:center; gap:6px; padding:7px 13px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; color:var(--text-secondary); background:var(--bg-secondary); border:0.5px solid var(--border-light); cursor:pointer; transition:background .15s; font-family:'DM Sans',sans-serif; }
+  .composer-btn:hover { background:var(--border-light); color:var(--text-primary); }
+  .composer-btn svg { width:14px; height:14px; opacity:.6; }
+
+  /* Post card */
+  .post-card { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); margin-bottom:16px; overflow:hidden; transition:border-color .15s; }
+  .post-card:hover { border-color:var(--border-medium); }
+  .post-header { display:flex; align-items:center; gap:12px; padding:16px 18px 0; }
+  .post-avatar { width:38px; height:38px; border-radius:50%; background:var(--role-color); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:#fff; flex-shrink:0; text-decoration:none; }
+  .post-meta { flex:1; min-width:0; }
+  .post-author { font-size:13px; font-weight:600; color:var(--text-primary); text-decoration:none; }
+  .post-author:hover { color:var(--role-color); }
+  .post-time { font-size:11px; color:var(--text-tertiary); }
+  .post-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; margin-left:6px; }
+  .post-badge.landlord { background:var(--bg-secondary); color:var(--text-secondary); }
+  .post-badge.agent { background:var(--blue-bg); color:var(--blue-text); }
+  .post-badge.tenant { background:var(--green-bg); color:var(--green-text); }
+  .post-more { width:28px; height:28px; border-radius:var(--radius-sm); background:none; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); transition:background .15s; }
+  .post-more:hover { background:var(--bg-secondary); color:var(--text-primary); }
+
+  .post-body { padding:14px 18px; font-size:13.5px; color:var(--text-primary); line-height:1.6; white-space:pre-wrap; word-break:break-word; }
+  .post-image { width:100%; max-height:420px; object-fit:cover; }
+
+  .post-tags { display:flex; gap:6px; flex-wrap:wrap; padding:0 18px 14px; }
+  .tag { font-size:11px; color:var(--blue-text); background:var(--blue-bg); padding:2px 9px; border-radius:20px; }
+
+  .post-footer { display:flex; align-items:center; gap:4px; padding:12px 18px; border-top:0.5px solid var(--border-light); }
+  .action-btn { display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; color:var(--text-secondary); background:none; border:none; cursor:pointer; transition:background .15s, color .15s; font-family:'DM Sans',sans-serif; text-decoration:none; }
+  .action-btn:hover { background:var(--bg-secondary); color:var(--text-primary); }
+  .action-btn.liked { color:var(--red-text); }
+  .action-btn svg { width:14px; height:14px; }
+  .action-btn.liked svg { fill:currentColor; }
+  .action-sep { flex:1; }
+  .share-btn { margin-left:auto; }
+
+  /* Comment preview */
+  .comment-preview { padding:12px 18px; background:var(--bg-secondary); border-top:0.5px solid var(--border-light); }
+  .comment-item { display:flex; gap:10px; margin-bottom:10px; }
+  .comment-item:last-child { margin-bottom:0; }
+  .comment-avatar { width:28px; height:28px; border-radius:50%; background:var(--role-color); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; color:#fff; flex-shrink:0; }
+  .comment-bubble { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:0 var(--radius-md) var(--radius-md) var(--radius-md); padding:8px 12px; flex:1; min-width:0; }
+  .comment-author { font-size:11px; font-weight:600; color:var(--text-primary); }
+  .comment-text { font-size:12px; color:var(--text-secondary); margin-top:2px; line-height:1.5; }
+  .comment-input-row { display:flex; gap:10px; margin-top:10px; align-items:center; }
+  .comment-field { flex:1; background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:8px 12px; font-size:12px; color:var(--text-primary); font-family:'DM Sans',sans-serif; }
+  .comment-field:focus { outline:none; border-color:var(--border-medium); }
+  .comment-send { width:32px; height:32px; border-radius:var(--radius-sm); background:var(--text-primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .15s; }
+  .comment-send:hover { opacity:.8; }
+
+  /* Filter tabs */
+  .feed-tabs { display:flex; gap:4px; margin-bottom:20px; }
+  .feed-tab { padding:7px 16px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; color:var(--text-secondary); background:var(--bg-card); border:0.5px solid var(--border-light); cursor:pointer; text-decoration:none; transition:background .15s, color .15s; }
+  .feed-tab:hover { background:var(--bg-secondary); color:var(--text-primary); }
+  .feed-tab.active { background:var(--text-primary); color:#fff; border-color:var(--text-primary); }
+
+  /* Sidebar widgets */
+  .widget { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); padding:18px; margin-bottom:16px; }
+  .widget-title { font-size:11px; font-weight:600; color:var(--text-tertiary); letter-spacing:.6px; text-transform:uppercase; margin-bottom:14px; }
+  .suggestion-item { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .suggestion-item:last-child { margin-bottom:0; }
+  .suggestion-info { flex:1; min-width:0; }
+  .suggestion-name { font-size:12px; font-weight:500; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .suggestion-role { font-size:10px; color:var(--text-tertiary); }
+  .follow-btn { padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; border:0.5px solid var(--border-medium); background:var(--bg-secondary); color:var(--text-secondary); cursor:pointer; transition:background .15s; font-family:'DM Sans',sans-serif; white-space:nowrap; }
+  .follow-btn:hover { background:var(--text-primary); color:#fff; border-color:var(--text-primary); }
+  .trend-item { display:flex; justify-content:space-between; align-items:center; margin-bottom:11px; }
+  .trend-item:last-child { margin-bottom:0; }
+  .trend-tag { font-size:12px; color:var(--blue-text); font-weight:500; }
+  .trend-count { font-size:11px; color:var(--text-tertiary); }
+
+  /* Empty state */
+  .empty-feed { text-align:center; padding:60px 20px; color:var(--text-tertiary); }
+  .empty-feed svg { width:48px; height:48px; margin-bottom:16px; opacity:.3; }
+  .empty-feed p { font-size:13px; }
+
+  /* Modal overlay */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:560px; margin:0 20px; overflow:hidden; }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:0.5px solid var(--border-light); }
+  .modal-title { font-family:'DM Serif Display',serif; font-size:18px; color:var(--text-primary); }
+  .modal-close { width:30px; height:30px; border-radius:var(--radius-sm); background:var(--bg-secondary); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); transition:background .15s; }
+  .modal-close:hover { background:var(--border-light); }
+  .modal-body { padding:20px; }
+  .post-textarea { width:100%; min-height:120px; background:var(--bg-secondary); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:12px 14px; font-size:14px; color:var(--text-primary); font-family:'DM Sans',sans-serif; resize:vertical; line-height:1.6; }
+  .post-textarea:focus { outline:none; border-color:var(--border-medium); }
+  .post-textarea::placeholder { color:var(--text-tertiary); }
+  .modal-footer { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-top:0.5px solid var(--border-light); }
+  .char-count { font-size:11px; color:var(--text-tertiary); }
+</style>
+{% endblock %}
 
 {% block content %}
+<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+  <div>
+    <h1 class="page-title">Community</h1>
+    <p class="page-sub">Connect with landlords, agents & neighbours</p>
+  </div>
+  <button class="btn-estate primary" onclick="document.getElementById('postModal').classList.add('open')">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M2 8h12"/></svg>
+    New Post
+  </button>
+</div>
 
-<!-- Compose Box -->
-<div class="compose-box">
-  <form method="post" action="{% url 'community:create_post' %}" enctype="multipart/form-data">
-    {% csrf_token %}
-    <div class="compose-input-area">
-      {% if profile.avatar %}
-        <img src="{{ profile.avatar.url }}" class="post-author-avatar" alt="" />
-      {% else %}
-        <div class="post-avatar-placeholder bg-role-{{ profile.role }}">
-          {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}{% if not request.user.first_name %}{{ request.user.username|slice:":2"|upper }}{% endif %}
+<div class="feed-layout">
+  <div class="feed-main">
+
+    <!-- Filter tabs -->
+    <div class="feed-tabs">
+      <a href="?filter=all" class="feed-tab {% if not request.GET.filter or request.GET.filter == 'all' %}active{% endif %}">All Posts</a>
+      <a href="?filter=following" class="feed-tab {% if request.GET.filter == 'following' %}active{% endif %}">Following</a>
+      <a href="?filter=landlord" class="feed-tab {% if request.GET.filter == 'landlord' %}active{% endif %}">Landlords</a>
+      <a href="?filter=agent" class="feed-tab {% if request.GET.filter == 'agent' %}active{% endif %}">Agents</a>
+      <a href="?filter=tenant" class="feed-tab {% if request.GET.filter == 'tenant' %}active{% endif %}">Tenants</a>
+    </div>
+
+    <!-- Composer shortcut -->
+    <div class="composer">
+      <div class="composer-row">
+        <div class="avatar-circle" style="font-size:10px;width:38px;height:38px;">{{ request.user.username|first|upper }}</div>
+        <div class="composer-input" onclick="document.getElementById('postModal').classList.add('open')">
+          What's on your mind, {{ request.user.first_name|default:request.user.username }}?
         </div>
-      {% endif %}
-      <div class="flex-grow-1">
-        {{ post_form.content }}
+      </div>
+      <div class="composer-actions">
+        <button class="composer-btn" onclick="document.getElementById('postModal').classList.add('open')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="11" rx="1.5"/><path d="M4 7h3l2 3 2-5 2 2h1"/></svg>
+          Photo
+        </button>
+        <button class="composer-btn" onclick="document.getElementById('postModal').classList.add('open')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12l4-5 3 3 3-4 3 3"/></svg>
+          Listing
+        </button>
+        <button class="composer-btn" onclick="document.getElementById('postModal').classList.add('open')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg>
+          Issue
+        </button>
       </div>
     </div>
-    <div class="compose-footer">
-      <div class="d-flex align-items-center gap-2">
-        {{ post_form.post_type }}
-        <label class="btn btn-sm btn-light rounded-pill mb-0" style="cursor:pointer;">
-          <i class="bi bi-image text-primary"></i>
-          {{ post_form.image }}
-        </label>
+
+    <!-- Posts -->
+    {% for post in posts %}
+    <article class="post-card">
+      <div class="post-header">
+        <a href="{% url 'community:profile' post.author.username %}" class="post-avatar" style="{% if post.author.role == 'agent' %}background:var(--blue-text){% elif post.author.role == 'tenant' %}background:var(--green-text){% endif %}">
+          {{ post.author.username|first|upper }}
+        </a>
+        <div class="post-meta">
+          <div>
+            <a href="{% url 'community:profile' post.author.username %}" class="post-author">{{ post.author.get_full_name|default:post.author.username }}</a>
+            <span class="post-badge {{ post.author.role }}">{{ post.author.role }}</span>
+          </div>
+          <div class="post-time">{{ post.created_at|timesince }} ago</div>
+        </div>
+        <button class="post-more">
+          <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="13" r="1.2"/></svg>
+        </button>
       </div>
-      <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill fw-600">
-        <i class="bi bi-send-fill me-1"></i>Post
+
+      {% if post.content %}
+      <div class="post-body">{{ post.content }}</div>
+      {% endif %}
+
+      {% if post.image %}
+      <img src="{{ post.image.url }}" alt="Post image" class="post-image">
+      {% endif %}
+
+      {% if post.tags.all %}
+      <div class="post-tags">
+        {% for tag in post.tags.all %}
+        <span class="tag">#{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="post-footer">
+        <a href="{% url 'community:toggle_like' post.pk %}" class="action-btn {% if request.user in post.likes.all %}liked{% endif %}">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14s-6-3.5-6-8a4 4 0 018 0 4 4 0 018 0c0 4.5-6 8-6 8z"/></svg>
+          {{ post.likes.count }}
+        </a>
+        <a href="{% url 'community:post_detail' post.pk %}" class="action-btn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 10a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1h10a1 1 0 011 1v7z"/></svg>
+          {{ post.comments.count }}
+        </a>
+        <div class="action-sep"></div>
+        <button class="action-btn share-btn" onclick="navigator.clipboard.writeText(window.location.origin+'{% url 'community:post_detail' post.pk %}')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="3" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="12" cy="13" r="1.5"/><path d="M5.4 7.3l5.2-3.1M5.4 8.7l5.2 3.1"/></svg>
+          Share
+        </button>
+      </div>
+
+      {% if post.comments.all %}
+      <div class="comment-preview">
+        {% for comment in post.comments.all|slice:":2" %}
+        <div class="comment-item">
+          <div class="comment-avatar" style="font-size:9px;">{{ comment.author.username|first|upper }}</div>
+          <div class="comment-bubble">
+            <div class="comment-author">{{ comment.author.get_full_name|default:comment.author.username }}</div>
+            <div class="comment-text">{{ comment.content }}</div>
+          </div>
+        </div>
+        {% endfor %}
+        <form method="post" action="{% url 'community:add_comment' post.pk %}" class="comment-input-row">
+          {% csrf_token %}
+          <input name="content" class="comment-field" placeholder="Write a comment…" autocomplete="off">
+          <button type="submit" class="comment-send">
+            <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.5"><path d="M14 2L2 7l5 3 7-8zM7 10l1 4 2-4"/></svg>
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </article>
+    {% empty %}
+    <div class="empty-feed">
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M44 30a4 4 0 01-4 4H16l-8 8V8a4 4 0 014-4h28a4 4 0 014 4v22z"/></svg>
+      <p>No posts yet — be the first to share something!</p>
+    </div>
+    {% endfor %}
+
+    {% if posts.has_other_pages %}
+    <div style="display:flex;justify-content:center;gap:8px;margin-top:8px;">
+      {% if posts.has_previous %}
+      <a href="?page={{ posts.previous_page_number }}" class="btn-estate">← Previous</a>
+      {% endif %}
+      <span style="padding:8px 16px;font-size:12px;color:var(--text-tertiary);">Page {{ posts.number }} of {{ posts.paginator.num_pages }}</span>
+      {% if posts.has_next %}
+      <a href="?page={{ posts.next_page_number }}" class="btn-estate">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div><!-- /feed-main -->
+
+  <aside class="feed-sidebar">
+    <!-- Who to follow -->
+    <div class="widget">
+      <div class="widget-title">People to Follow</div>
+      {% for u in suggested_users %}
+      <div class="suggestion-item">
+        <div class="avatar-circle" style="font-size:10px;width:34px;height:34px;{% if u.role == 'agent' %}background:var(--blue-text){% elif u.role == 'tenant' %}background:var(--green-text){% endif %}">{{ u.username|first|upper }}</div>
+        <div class="suggestion-info">
+          <div class="suggestion-name">{{ u.get_full_name|default:u.username }}</div>
+          <div class="suggestion-role">{{ u.role }}</div>
+        </div>
+        <form method="post" action="{% url 'community:toggle_follow' u.username %}">
+          {% csrf_token %}
+          <button class="follow-btn" type="submit">Follow</button>
+        </form>
+      </div>
+      {% empty %}
+      <p style="font-size:12px;color:var(--text-tertiary);">No suggestions right now.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Trending tags -->
+    <div class="widget">
+      <div class="widget-title">Trending Topics</div>
+      {% for trend in trending_tags %}
+      <div class="trend-item">
+        <span class="trend-tag">#{{ trend.name }}</span>
+        <span class="trend-count">{{ trend.post_count }} posts</span>
+      </div>
+      {% empty %}
+      <div class="trend-item"><span class="trend-tag">#maintenance</span><span class="trend-count">12 posts</span></div>
+      <div class="trend-item"><span class="trend-tag">#rentalprice</span><span class="trend-count">8 posts</span></div>
+      <div class="trend-item"><span class="trend-tag">#newlisting</span><span class="trend-count">5 posts</span></div>
+      {% endfor %}
+    </div>
+
+    <!-- Quick links -->
+    <div class="widget">
+      <div class="widget-title">Quick Links</div>
+      <a href="{% url 'community:members' %}" class="nav-item" style="padding:8px 10px;margin-bottom:4px;">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;opacity:.5;"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
+        Browse Members
+      </a>
+      <a href="{% url 'community:listings' %}" class="nav-item" style="padding:8px 10px;margin-bottom:4px;">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;opacity:.5;"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
+        Community Listings
+      </a>
+      <a href="{% url 'community:notifications' %}" class="nav-item" style="padding:8px 10px;">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;opacity:.5;"><path d="M8 1a5 5 0 00-5 5v3l-1.5 2h13L13 9V6a5 5 0 00-5-5zM6.5 13a1.5 1.5 0 003 0"/></svg>
+        Notifications
+      </a>
+    </div>
+  </aside>
+</div>
+
+<!-- Create Post Modal -->
+<div class="modal-overlay" id="postModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Create Post</span>
+      <button class="modal-close" onclick="document.getElementById('postModal').classList.remove('open')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4L4 12M4 4l8 8"/></svg>
       </button>
     </div>
-  </form>
-</div>
-
-<!-- Filter Tabs -->
-<div class="d-flex gap-2 mb-3 flex-wrap">
-  <a href="{% url 'community:feed' %}" class="btn btn-sm rounded-pill {% if not active_type %}btn-primary{% else %}btn-light{% endif %}">
-    All
-  </a>
-  {% for value, label in post_types %}
-  <a href="{% url 'community:feed' %}?type={{ value }}" class="btn btn-sm rounded-pill {% if active_type == value %}btn-primary{% else %}btn-light{% endif %}">
-    {{ label }}
-  </a>
-  {% endfor %}
-</div>
-
-<!-- Posts -->
-{% for post in posts %}
-<div class="ec-card" id="post-{{ post.id }}">
-  <div class="ec-card-body pb-1">
-    <!-- Author row -->
-    <div class="d-flex align-items-start gap-3 mb-3">
-      <a href="{% url 'community:profile' username=post.author.user.username %}">
-        {% if post.author.avatar %}
-          <img src="{{ post.author.avatar.url }}" class="post-author-avatar" alt="" />
-        {% else %}
-          <div class="post-avatar-placeholder bg-role-{{ post.author.role }}">
-            {{ post.author.user.first_name|first|upper }}{{ post.author.user.last_name|first|upper }}{% if not post.author.user.first_name %}{{ post.author.user.username|slice:":2"|upper }}{% endif %}
+    <form method="post" action="{% url 'community:create_post' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;">
+          <div class="avatar-circle" style="font-size:10px;width:38px;height:38px;flex-shrink:0;">{{ request.user.username|first|upper }}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div style="font-size:11px;color:var(--text-tertiary);">{{ request.user.role }}</div>
           </div>
-        {% endif %}
-      </a>
-      <div class="flex-grow-1">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <a href="{% url 'community:profile' username=post.author.user.username %}" class="fw-600 text-dark text-decoration-none">
-            {{ post.author.user.get_full_name|default:post.author.user.username }}
-          </a>
-          {% if post.author.verified %}
-            <i class="bi bi-patch-check-fill text-primary" title="Verified"></i>
-          {% endif %}
-          <span class="role-pill role-{{ post.author.role }}">
-            <i class="{{ post.author.role_icon }}"></i> {{ post.author.get_role_display }}
-          </span>
-          <span class="badge bg-{{ post.type_color }} bg-opacity-10 text-{{ post.type_color }} rounded-pill" style="font-size:10px;">
-            <i class="{{ post.type_icon }}"></i> {{ post.get_post_type_display }}
-          </span>
-          {% if post.is_pinned %}
-            <span class="badge bg-warning text-dark rounded-pill" style="font-size:10px;"><i class="bi bi-pin-fill"></i> Pinned</span>
-          {% endif %}
         </div>
-        <div class="text-muted-sm mt-1">{{ post.author.location }} · {{ post.created_at|timesince }} ago</div>
+        <textarea name="content" class="post-textarea" placeholder="Share an update, ask a question, or post a property tip…" maxlength="2000" id="postContent" oninput="document.getElementById('charCount').textContent=this.value.length+'/2000'"></textarea>
+        <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;"><rect x="1" y="2" width="14" height="11" rx="1.5"/><path d="M4 7h3l2 3 2-5 2 2h1"/></svg>
+            <input type="file" name="image" accept="image/*" style="display:none;">
+            Add Photo
+          </label>
+        </div>
       </div>
-      {% if post.author == profile %}
-      <div class="dropdown">
-        <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown">
-          <i class="bi bi-three-dots"></i>
+      <div class="modal-footer">
+        <span class="char-count" id="charCount">0/2000</span>
+        <button type="submit" class="btn-estate primary">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px;"><path d="M14 2L2 7l5 3 7-8zM7 10l1 4 2-4"/></svg>
+          Post
         </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li>
-            <a class="dropdown-item text-danger" href="{% url 'community:delete_post' pk=post.id %}"
-               onclick="return confirm('Delete this post?')">
-              <i class="bi bi-trash me-2"></i>Delete
-            </a>
-          </li>
-        </ul>
       </div>
-      {% endif %}
-    </div>
-
-    <!-- Content -->
-    <p class="mb-3" style="font-size:15px; line-height:1.6;">{{ post.content }}</p>
-
-    {% if post.image %}
-      <img src="{{ post.image.url }}" class="img-fluid rounded-3 mb-3" style="max-height:360px;width:100%;object-fit:cover;" alt="Post image" />
-    {% endif %}
-  </div>
-
-  <!-- Actions -->
-  <div class="post-actions d-flex px-2 py-1">
-    <button class="post-action-btn like-btn {% if profile in post.likes.all %}liked{% endif %}"
-            data-post-id="{{ post.id }}"
-            onclick="toggleLike({{ post.id }}, this)">
-      <i class="bi {% if profile in post.likes.all %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
-      <span class="like-count">{{ post.like_count }}</span> Like
-    </button>
-    <a href="{% url 'community:post_detail' pk=post.id %}" class="post-action-btn">
-      <i class="bi bi-chat"></i> {{ post.comment_count }} Comment
-    </a>
-    <a href="{% url 'community:conversation' username=post.author.user.username %}" class="post-action-btn">
-      <i class="bi bi-send"></i> Message
-    </a>
+    </form>
   </div>
 </div>
-{% empty %}
-<div class="ec-card">
-  <div class="ec-card-body text-center py-5">
-    <i class="bi bi-people display-3 text-muted opacity-25 d-block mb-3"></i>
-    <h6 class="fw-600">Nothing here yet</h6>
-    <p class="text-muted small mb-3">Follow some members to see their posts, or be the first to post!</p>
-    <a href="{% url 'community:members' %}" class="btn btn-primary btn-sm rounded-pill">Find Members</a>
-  </div>
-</div>
-{% endfor %}
 
-<!-- Pagination -->
-{% if posts.has_other_pages %}
-<div class="d-flex justify-content-center gap-2 mt-3 mb-5">
-  {% if posts.has_previous %}
-    <a href="?page={{ posts.previous_page_number }}{% if active_type %}&type={{ active_type }}{% endif %}" class="btn btn-sm btn-light rounded-pill">
-      <i class="bi bi-chevron-left"></i> Prev
-    </a>
-  {% endif %}
-  <span class="btn btn-sm btn-light rounded-pill disabled">{{ posts.number }} / {{ posts.paginator.num_pages }}</span>
-  {% if posts.has_next %}
-    <a href="?page={{ posts.next_page_number }}{% if active_type %}&type={{ active_type }}{% endif %}" class="btn btn-sm btn-light rounded-pill">
-      Next <i class="bi bi-chevron-right"></i>
-    </a>
-  {% endif %}
-</div>
-{% endif %}
-
-{% endblock %}
-
-
-{% block right_panel %}
-<!-- Who to follow -->
-<div class="mb-4">
-  <div class="fw-700 mb-3" style="font-size:14px;">People to Follow</div>
-  {% for member in suggested_users %}
-  <div class="member-card" id="suggest-{{ member.id }}">
-    {% if member.avatar %}
-      <img src="{{ member.avatar.url }}" class="member-card-avatar" alt="" />
-    {% else %}
-      <div class="post-avatar-placeholder bg-role-{{ member.role }} flex-shrink-0" style="width:40px;height:40px;font-size:13px;">
-        {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}{% if not member.user.first_name %}{{ member.user.username|slice:":2"|upper }}{% endif %}
-      </div>
-    {% endif %}
-    <div class="flex-grow-1 overflow-hidden">
-      <a href="{% url 'community:profile' username=member.user.username %}" class="fw-600 text-dark text-decoration-none d-block text-truncate" style="font-size:13px;">
-        {{ member.user.get_full_name|default:member.user.username }}
-      </a>
-      <span class="role-pill role-{{ member.role }}"><i class="{{ member.role_icon }}"></i> {{ member.get_role_display }}</span>
-    </div>
-    <button class="btn btn-sm btn-outline-primary rounded-pill follow-btn"
-            style="font-size:11px;padding:3px 12px;"
-            onclick="toggleFollow('{{ member.user.username }}', this)">
-      Follow
-    </button>
-  </div>
-  {% empty %}
-    <p class="text-muted small">You're following everyone!</p>
-  {% endfor %}
-  <a href="{% url 'community:members' %}" class="btn btn-sm btn-light rounded-pill w-100 mt-2" style="font-size:12px;">
-    View all members <i class="bi bi-arrow-right"></i>
-  </a>
-</div>
-
-<!-- Recent Listings -->
-<div>
-  <div class="fw-700 mb-3" style="font-size:14px;">Recent Listings</div>
-  {% for listing in recent_listings %}
-  <a href="{% url 'community:listings' %}" class="text-decoration-none">
-    <div class="d-flex gap-3 align-items-center mb-3 p-2 rounded-3" style="transition:background .15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
-      <div style="width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#dbeafe,#e0f2fe);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🏠</div>
-      <div class="overflow-hidden">
-        <div class="fw-600 text-dark text-truncate" style="font-size:13px;">{{ listing.title }}</div>
-        <div class="text-muted-sm text-truncate">{{ listing.location }}</div>
-        <div class="fw-700 text-primary" style="font-size:13px;">${{ listing.price }}/mo</div>
-      </div>
-    </div>
-  </a>
-  {% empty %}
-    <p class="text-muted small">No listings yet.</p>
-  {% endfor %}
-  <a href="{% url 'community:listings' %}" class="btn btn-sm btn-light rounded-pill w-100 mt-1" style="font-size:12px;">
-    Browse all listings <i class="bi bi-arrow-right"></i>
-  </a>
-</div>
-{% endblock %}
-
-
-{% block extra_js %}
 <script>
-function toggleLike(postId, btn) {
-  ajaxPost(`/community/post/${postId}/like/`, btn, (data) => {
-    const icon = btn.querySelector('i');
-    const count = btn.querySelector('.like-count');
-    icon.className = data.liked ? 'bi bi-heart-fill' : 'bi bi-heart';
-    btn.className = data.liked ? 'post-action-btn like-btn liked' : 'post-action-btn like-btn';
-    count.textContent = data.count;
-  });
-}
-
-function toggleFollow(username, btn) {
-  ajaxPost(`/community/profile/${username}/follow/`, btn, (data) => {
-    btn.textContent = data.following ? 'Following' : 'Follow';
-    btn.className = data.following
-      ? 'btn btn-sm btn-primary rounded-pill'
-      : 'btn btn-sm btn-outline-primary rounded-pill';
-    btn.style.fontSize = '11px';
-    btn.style.padding = '3px 12px';
-  });
-}
-
-// Hide file input, show icon only
-document.querySelectorAll('input[type=file]').forEach(el => {
-  el.style.display = 'none';
+document.getElementById('postModal').addEventListener('click', function(e){
+  if(e.target === this) this.classList.remove('open');
 });
 </script>
 {% endblock %}

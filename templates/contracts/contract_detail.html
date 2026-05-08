@@ -52,8 +52,8 @@
     color: white;
     padding: 8px 12px;
     border-radius: 6px;
-    text-decoration: none;
-    font-size: 13px;
+    border: none;
+    cursor: pointer;
   }
 
   .btn-decline {
@@ -61,65 +61,49 @@
     color: white;
     padding: 8px 12px;
     border-radius: 6px;
-    text-decoration: none;
-    font-size: 13px;
+    border: none;
+    cursor: pointer;
   }
 </style>
 
 <div class="card">
   <div class="title">Contract #{{ contract.id }}</div>
 
-  <div class="row">
-    <span class="label">Property:</span>
-    <span class="value">{{ contract.property }}</span>
-  </div>
-
-  <div class="row">
-    <span class="label">Tenant:</span>
-    <span class="value">{{ contract.tenant }}</span>
-  </div>
-
-  <div class="row">
-    <span class="label">Rent:</span>
-    <span class="value">{{ contract.rent_amount }}</span>
-  </div>
-
-  <div class="row">
-    <span class="label">Deposit:</span>
-    <span class="value">{{ contract.deposit }}</span>
-  </div>
-
-  <div class="row">
-    <span class="label">Start:</span>
-    <span class="value">{{ contract.start_date }}</span>
-  </div>
-
-  <div class="row">
-    <span class="label">End:</span>
-    <span class="value">{{ contract.end_date }}</span>
-  </div>
+  <div class="row"><span class="label">Property:</span> {{ contract.property }}</div>
+  <div class="row"><span class="label">Tenant:</span> {{ contract.tenant }}</div>
+  <div class="row"><span class="label">Rent:</span> {{ contract.rent_amount }}</div>
+  <div class="row"><span class="label">Deposit:</span> {{ contract.deposit }}</div>
+  <div class="row"><span class="label">Start:</span> {{ contract.start_date }}</div>
+  <div class="row"><span class="label">End:</span> {{ contract.end_date }}</div>
 
   <div class="row">
     <span class="label">Status:</span>
     <span class="badge">{{ contract.status }}</span>
   </div>
 
-  <div class="row">
-    <span class="label">Notes:</span>
-    <span class="value">{{ contract.notes }}</span>
-  </div>
+  <div class="row"><span class="label">Notes:</span> {{ contract.notes }}</div>
 
-  <!-- 🔥 TENANT ACTIONS ONLY -->
-  {% if is_tenant_owner and contract.status == "pending" %}
+  <!-- ✅ TENANT ACTIONS (SAFE POST) -->
+  {% if can_approve %}
+
   <div class="actions">
-    <a href="{% url 'contract_approve' contract.id %}" class="btn-approve">
-      Approve Contract
-    </a>
 
-    <a href="{% url 'contract_decline' contract.id %}" class="btn-decline">
-      Decline
-    </a>
+    <form method="POST" action="{% url 'contract_approve' contract.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-approve">
+        Approve Contract
+      </button>
+    </form>
+
+    <form method="POST" action="{% url 'contract_decline' contract.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-decline">
+        Decline
+      </button>
+    </form>
+
   </div>
+
   {% endif %}
 </div>
 

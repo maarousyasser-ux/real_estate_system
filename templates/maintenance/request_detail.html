@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Request #{{ req.pk }} · Estāte{% endblock %}
+
+{% block content %}
+
+<!-- Back + actions bar -->
+<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; flex-wrap:wrap;">
+  <a href="{% url 'maintenance:list' %}" class="btn-estate">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3L5 8l5 5"/></svg>
+    Back
+  </a>
+  <div style="display:flex; gap:8px;">
+    {% if req.tenant == request.user and req.status == 'pending' %}
+      <a href="{% url 'maintenance:edit' req.pk %}" class="btn-estate">Edit</a>
+    {% endif %}
+    {% if req.tenant == request.user and req.status == 'resolved' %}
+      <a href="{% url 'maintenance:close' req.pk %}"
+         class="btn-estate"
+         onclick="return confirm('Mark this request as closed?')">Close Request</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Two-column layout -->
+<div style="display:grid; grid-template-columns:1fr 280px; gap:18px; align-items:start;">
+
+  <!-- LEFT: main -->
+  <div style="min-width:0;">
+
+    <!-- Title card -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+        <h1 style="font-family:'DM Serif Display',serif; font-size:22px; line-height:1.25; color:var(--text-primary);">
+          {{ req.title }}
+        </h1>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          {% if req.priority == 'low' %}<span class="pill paid">Low</span>
+          {% elif req.priority == 'medium' %}<span class="pill open">Medium</span>
+          {% elif req.priority == 'high' %}<span class="pill progress">High</span>
+          {% elif req.priority == 'urgent' %}<span class="pill overdue">Urgent</span>
+          {% endif %}
+
+          {% if req.status == 'pending' %}<span class="pill pending">Pending</span>
+          {% elif req.status == 'in_progress' %}<span class="pill open">In Progress</span>
+          {% elif req.status == 'resolved' %}<span class="pill paid">Resolved</span>
+          {% elif req.status == 'closed' %}<span class="pill" style="background:var(--bg-secondary);color:var(--text-tertiary);">Closed</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:16px;">
+        Submitted by <strong style="color:var(--text-secondary);">{{ req.tenant.get_full_name|default:req.tenant.username }}</strong>
+        · {{ req.created_at|date:"F d, Y \a\t H:i" }}
+      </div>
+
+      <p style="font-size:13px; line-height:1.7; color:var(--text-primary);">{{ req.description|linebreaks }}</p>
+
+      {% if req.image %}
+      <div style="margin-top:18px;">
+        <div style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--text-tertiary); margin-bottom:8px;">Attached Photo</div>
+        <img src="{{ req.image.url }}" alt="Maintenance photo"
+             style="max-width:100%; border-radius:var(--radius-md); border:0.5px solid var(--border-light);">
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Comments card -->
+    <div class="card">
+      <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:16px;">
+        Updates &amp; Comments
+      </div>
+
+      {% if comments %}
+        {% for comment in comments %}
+        <div style="padding:12px 14px; border-radius:var(--radius-sm); margin-bottom:10px;
+                    {% if comment.is_internal %}background:var(--amber-bg); border:0.5px solid var(--amber-text);
+                    {% else %}background:var(--bg-secondary); border:0.5px solid var(--border-light);{% endif %}">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:600; color:var(--text-primary);">
+              {{ comment.author.get_full_name|default:comment.author.username }}
+            </span>
+            <span style="font-size:10px; color:var(--text-tertiary);">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+            {% if comment.is_internal %}
+              <span class="pill progress" style="font-size:9px;">Internal</span>
+            {% endif %}
+          </div>
+          <div style="font-size:12px; line-height:1.6; color:var(--text-primary);">{{ comment.body|linebreaks }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="font-size:12px; color:var(--text-tertiary); margin-bottom:16px;">No comments yet.</p>
+      {% endif %}
+
+      <div style="border-top:0.5px solid var(--border-light); padding-top:16px; margin-top:8px;">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="comment">
+          <textarea name="{{ comment_form.body.html_name }}" rows="3" placeholder="Add a comment or update…"
+            style="width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:0.5px solid var(--border-medium);
+                   background:var(--bg-card); color:var(--text-primary); font-size:12px; font-family:'DM Sans',sans-serif;
+                   resize:vertical; outline:none; margin-bottom:10px;">{{ comment_form.body.value|default:'' }}</textarea>
+          {% if is_staff %}
+          <div style="display:flex; align-items:center; gap:7px; margin-bottom:12px;">
+            <input type="checkbox" name="{{ comment_form.is_internal.html_name }}" id="internal_check"
+                   {% if comment_form.is_internal.value %}checked{% endif %}
+                   style="accent-color:var(--role-color); width:14px; height:14px;">
+            <label for="internal_check" style="font-size:11px; color:var(--text-secondary); cursor:pointer;">
+              Internal only (hidden from tenant)
+            </label>
+          </div>
+          {% endif %}
+          <button type="submit" class="btn-estate primary">Post Comment</button>
+        </form>
+      </div>
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- RIGHT: metadata + staff panel -->
+  <div>
+
+    <!-- Details card -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:14px;">Details</div>
+
+      {% with row_style="margin-bottom:12px;" key_style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--text-tertiary); margin-bottom:2px;" val_style="font-size:12px; color:var(--text-primary);" %}
+
+      <div style="{{ row_style }}">
+        <div style="{{ key_style }}">Category</div>
+        <div style="{{ val_style }}">{{ req.get_category_display }}</div>
+      </div>
+      <div style="{{ row_style }}">
+        <div style="{{ key_style }}">Unit</div>
+        <div style="{{ val_style }}">{{ req.unit_number|default:"—" }}</div>
+      </div>
+      <div style="{{ row_style }}">
+        <div style="{{ key_style }}">Property</div>
+        <div style="{{ val_style }}">{{ req.property_address|default:"—" }}</div>
+      </div>
+      <div style="{{ row_style }}">
+        <div style="{{ key_style }}">Submitted</div>
+        <div style="{{ val_style }}">{{ req.created_at|date:"M d, Y" }}</div>
+      </div>
+      <div style="{{ row_style }}">
+        <div style="{{ key_style }}">Last updated</div>
+        <div style="{{ val_style }}">{{ req.updated_at|date:"M d, Y" }}</div>
+      </div>
+      {% if req.resolved_at %}
+      <div style="{{ row_style }}">
+        <div style="{{ key_style }}">Resolved</div>
+        <div style="{{ val_style }}">{{ req.resolved_at|date:"M d, Y" }}</div>
+      </div>
+      {% endif %}
+
+      {% endwith %}
+    </div>
+
+    <!-- Staff update panel -->
+    {% if is_staff and status_form %}
+    <div class="card">
+      <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:14px;">Staff Update</div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_status">
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:5px;">Status</div>
+          <select name="{{ status_form.status.html_name }}"
+            style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:0.5px solid var(--border-medium);
+                   background:var(--bg-card); color:var(--text-primary); font-size:12px; font-family:'DM Sans',sans-serif;">
+            {% for val, label in status_form.fields.status.choices %}
+              <option value="{{ val }}" {% if status_form.instance.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:5px;">Internal Notes</div>
+          <textarea name="{{ status_form.notes.html_name }}" rows="3"
+            placeholder="Notes visible to staff only…"
+            style="width:100%; padding:8px 10px; border-radius:var(--radius-sm); border:0.5px solid var(--border-medium);
+                   background:var(--bg-card); color:var(--text-primary); font-size:12px; font-family:'DM Sans',sans-serif;
+                   resize:vertical; outline:none;">{{ status_form.instance.notes }}</textarea>
+        </div>
+
+        <button type="submit" class="btn-estate primary" style="width:100%; justify-content:center;">Save Changes</button>
+      </form>
+
+      {% if req.notes %}
+      <div style="margin-top:14px; padding-top:14px; border-top:0.5px solid var(--border-light);">
+        <div style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--text-tertiary); margin-bottom:5px;">Current Notes</div>
+        <p style="font-size:11px; color:var(--text-secondary); line-height:1.6;">{{ req.notes }}</p>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div><!-- /right -->
+</div>
+
+<style>
+  @media(max-width:760px){
+    div[style*="grid-template-columns:1fr 280px"]{grid-template-columns:1fr!important;}
+  }
+</style>
+
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Estāte{% endblock %}
+
+{% block content %}
+
+<div style="max-width:640px;">
+
+  <!-- Header -->
+  <div style="margin-bottom:22px;">
+    <a href="{% if req %}{% url 'maintenance:detail' req.pk %}{% else %}{% url 'maintenance:list' %}{% endif %}"
+       class="btn-estate" style="margin-bottom:16px; display:inline-flex;">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M10 3L5 8l5 5"/>
+      </svg>
+      Back
+    </a>
+
+    <div class="page-title">{{ title }}</div>
+    <div class="page-sub">
+      Please describe the issue clearly so our team can respond quickly.
+    </div>
+  </div>
+
+  <!-- Form card -->
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      {% with input_style="width:100%; padding:9px 12px; border-radius:var(--radius-sm); border:0.5px solid var(--border-medium); background:var(--bg-card); color:var(--text-primary); font-size:13px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .15s;" label_style="display:block; font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px;" %}
+
+      <!-- CONTRACT SELECT (NEW FIX) -->
+      <div style="margin-bottom:16px;">
+        <label style="{{ label_style }}">Rental Contract *</label>
+
+        <select name="contract" style="{{ input_style }}" required>
+          {% for c in contracts %}
+            <option value="{{ c.id }}">
+              {{ c.property.title }} - {{ c.property.address }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <div style="font-size:11px; color:var(--text-tertiary); margin-top:4px;">
+          Select the property where the issue is happening
+        </div>
+      </div>
+
+      <!-- TITLE -->
+      <div style="margin-bottom:16px;">
+        <label style="{{ label_style }}">Issue Title *</label>
+        <input type="text" name="{{ form.title.html_name }}"
+               value="{{ form.title.value|default:'' }}"
+               placeholder="Brief summary of the issue"
+               style="{{ input_style }}"
+               onfocus="this.style.borderColor='var(--role-color)'"
+               onblur="this.style.borderColor='var(--border-medium)'">
+
+        {% if form.title.errors %}
+          <div style="font-size:11px; color:var(--red-text); margin-top:4px;">
+            {{ form.title.errors|join:", " }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- CATEGORY + PRIORITY -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+
+        <div>
+          <label style="{{ label_style }}">Category *</label>
+          <select name="{{ form.category.html_name }}" style="{{ input_style }}">
+            {% for val, label in form.fields.category.choices %}
+              <option value="{{ val }}" {% if form.category.value == val %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label style="{{ label_style }}">Priority *</label>
+          <select name="{{ form.priority.html_name }}" style="{{ input_style }}">
+            {% for val, label in form.fields.priority.choices %}
+              <option value="{{ val }}" {% if form.priority.value == val %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+
+      <!-- DESCRIPTION -->
+      <div style="margin-bottom:16px;">
+        <label style="{{ label_style }}">Description *</label>
+        <textarea name="{{ form.description.html_name }}" rows="4"
+                  placeholder="Describe the issue in detail — when it started, how severe it is…"
+                  style="{{ input_style }} resize:vertical;"
+                  onfocus="this.style.borderColor='var(--role-color)'"
+                  onblur="this.style.borderColor='var(--border-medium)'">{{ form.description.value|default:'' }}</textarea>
+
+        {% if form.description.errors %}
+          <div style="font-size:11px; color:var(--red-text); margin-top:4px;">
+            {{ form.description.errors|join:", " }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- PHOTO -->
+      <div style="margin-bottom:20px;">
+        <label style="{{ label_style }}">Photo (optional)</label>
+        <input type="file" name="{{ form.image.html_name }}" accept="image/*"
+               style="{{ input_style }} padding:7px 10px;">
+
+        <div style="font-size:11px; color:var(--text-tertiary); margin-top:4px;">
+          Upload a photo of the issue to help us diagnose faster.
+        </div>
+      </div>
+
+      {% endwith %}
+
+      <!-- Submit -->
+      <div style="border-top:0.5px solid var(--border-light); padding-top:18px; display:flex; gap:10px;">
+        <button type="submit" class="btn-estate primary">
+          Submit Request
+        </button>
+
+        <a href="{% if req %}{% url 'maintenance:detail' req.pk %}{% else %}{% url 'maintenance:list' %}{% endif %}"
+           class="btn-estate">
+          Cancel
+        </a>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<style>
+  @media(max-width:600px){
+    div[style*="grid-template-columns:1fr 1fr"]{
+      grid-template-columns:1fr !important;
+    }
+  }
+</style>
+
+{% endblock %}

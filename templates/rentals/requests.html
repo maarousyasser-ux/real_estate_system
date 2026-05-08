@@ -34,6 +34,7 @@
 .req-actions {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .btn-accept {
@@ -54,10 +55,25 @@
   cursor: pointer;
 }
 
+.status-badge {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f3f4f6;
+  color: #333;
+}
+
 .empty {
   text-align: center;
   color: #777;
   padding: 40px;
+}
+
+.fade-out {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: 0.3s ease;
 }
 </style>
 
@@ -67,42 +83,97 @@
   <p style="color:#666;">Manage tenant requests for your properties</p>
 
   {% for r in requests %}
-    <div class="req-card">
+    <div class="req-card" id="req-{{ r.id }}">
 
+      <!-- LEFT -->
       <div class="req-info">
         <h4>{{ r.tenant.username }}</h4>
-        <p>
-          wants to rent <strong>{{ r.property.title }}</strong>
-        </p>
-        <p style="font-size:11px;">
-          {{ r.created_at|date:"Y-m-d H:i" }}
-        </p>
+        <p>wants to rent <strong>{{ r.property.title }}</strong></p>
+        <p style="font-size:11px;">{{ r.created_at|date:"Y-m-d H:i" }}</p>
       </div>
 
+      <!-- RIGHT -->
       <div class="req-actions">
 
-        <!-- APPROVE -->
-        <form method="POST" action="{% url 'rentals:approve_request' r.id %}">
-          {% csrf_token %}
-          <button class="btn-accept">Approve</button>
-        </form>
+        <!-- ================= TENANT VIEW ONLY ================= -->
+        {% if user.role == "tenant" %}
 
-        <!-- REJECT -->
-        <form method="POST" action="{% url 'rentals:reject_request' r.id %}">
-          {% csrf_token %}
-          <button class="btn-reject">Reject</button>
-        </form>
+          <span class="status-badge">
+            Status: {{ r.status }}
+          </span>
+
+        {% else %}
+
+          <!-- ================= LANDLORD / AGENT ACTIONS ================= -->
+
+          <form method="POST"
+                action="{% url 'rentals:approve_request' r.id %}"
+                class="approve-form">
+            {% csrf_token %}
+            <button class="btn-accept" type="submit">Approve</button>
+          </form>
+
+          <form method="POST"
+                action="{% url 'rentals:reject_request' r.id %}"
+                class="reject-form">
+            {% csrf_token %}
+            <button class="btn-reject" type="submit">Reject</button>
+          </form>
+
+        {% endif %}
 
       </div>
 
     </div>
 
   {% empty %}
-    <div class="empty">
-      No rental requests yet.
-    </div>
+    <div class="empty">No rental requests yet.</div>
   {% endfor %}
 
 </div>
+
+<!-- ================= JS (ONLY FOR AGENTS/LANDLORDS) ================= -->
+{% if user.role != "tenant" %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  document.querySelectorAll(".reject-form").forEach(form => {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const card = this.closest(".req-card");
+
+      fetch(this.action, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": this.querySelector("[name=csrfmiddlewaretoken]").value
+        }
+      }).then(() => {
+        card.classList.add("fade-out");
+        setTimeout(() => card.remove(), 300);
+      });
+    });
+  });
+
+  document.querySelectorAll(".approve-form").forEach(form => {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      fetch(this.action, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": this.querySelector("[name=csrfmiddlewaretoken]").value
+        }
+      })
+      .then(res => res.url)
+      .then(url => {
+        window.location.href = url;
+      });
+    });
+  });
+
+});
+</script>
+{% endif %}
 
 {% endblock %}

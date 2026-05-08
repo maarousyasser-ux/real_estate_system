@@ -1,142 +1,121 @@
 {% extends "base.html" %}
-{% block title %}Members{% endblock %}
+{% block title %}Members — Estāte{% endblock %}
+
+{% block extra_head %}
+<style>
+  .search-bar { display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap; }
+  .search-input { flex:1; min-width:200px; background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:10px 14px; font-size:13px; color:var(--text-primary); font-family:'DM Sans',sans-serif; }
+  .search-input:focus { outline:none; border-color:var(--border-medium); }
+  .search-input::placeholder { color:var(--text-tertiary); }
+  .role-filter { display:flex; gap:6px; }
+  .role-pill { padding:7px 14px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; color:var(--text-secondary); background:var(--bg-card); border:0.5px solid var(--border-light); cursor:pointer; text-decoration:none; transition:background .15s; }
+  .role-pill:hover { background:var(--bg-secondary); }
+  .role-pill.active { background:var(--text-primary); color:#fff; border-color:var(--text-primary); }
+  .role-pill.agent { }
+  .role-pill.tenant { }
+
+  .members-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  .member-card { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); overflow:hidden; transition:border-color .2s, transform .15s; }
+  .member-card:hover { border-color:var(--border-medium); transform:translateY(-2px); }
+  .member-cover { height:72px; background:linear-gradient(135deg, var(--bg-secondary) 0%, var(--border-light) 100%); position:relative; }
+  .member-cover.landlord { background:linear-gradient(135deg,#1a1a1a22,#1a1a1a11); }
+  .member-cover.agent    { background:linear-gradient(135deg,var(--blue-bg),#e6f1fb88); }
+  .member-cover.tenant   { background:linear-gradient(135deg,var(--green-bg),#eaf3de88); }
+  .member-avatar { width:52px; height:52px; border-radius:50%; border:3px solid var(--bg-card); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; color:#fff; position:absolute; bottom:-18px; left:18px; }
+  .member-avatar.landlord { background:#1A1A1A; }
+  .member-avatar.agent { background:var(--blue-text); }
+  .member-avatar.tenant { background:var(--green-text); }
+  .member-body { padding:28px 18px 18px; }
+  .member-name { font-size:14px; font-weight:600; color:var(--text-primary); text-decoration:none; display:block; }
+  .member-name:hover { color:var(--role-color); }
+  .member-role { font-size:11px; color:var(--text-tertiary); text-transform:capitalize; margin-top:2px; margin-bottom:12px; }
+  .member-stats { display:flex; gap:16px; margin-bottom:14px; }
+  .member-stat { text-align:center; }
+  .member-stat-val { font-size:14px; font-weight:600; color:var(--text-primary); }
+  .member-stat-label { font-size:10px; color:var(--text-tertiary); }
+  .member-actions { display:flex; gap:8px; }
+  .member-follow { flex:1; padding:7px 0; border-radius:var(--radius-sm); font-size:12px; font-weight:500; border:0.5px solid var(--border-medium); background:var(--bg-secondary); color:var(--text-secondary); cursor:pointer; transition:background .15s,color .15s; font-family:'DM Sans',sans-serif; }
+  .member-follow:hover { background:var(--text-primary); color:#fff; border-color:var(--text-primary); }
+  .member-follow.following { background:var(--text-primary); color:#fff; border-color:var(--text-primary); }
+  .member-msg { width:34px; padding:7px; border-radius:var(--radius-sm); font-size:12px; border:0.5px solid var(--border-medium); background:var(--bg-secondary); color:var(--text-secondary); cursor:pointer; transition:background .15s; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+  .member-msg:hover { background:var(--bg-secondary); color:var(--text-primary); }
+  .member-msg svg { width:13px; height:13px; }
+
+  .section-count { font-size:12px; color:var(--text-tertiary); margin-bottom:16px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4">
-  <h5 class="fw-700 mb-0">Community Members</h5>
-  <span class="badge bg-primary rounded-pill">{{ members.paginator.count }} members</span>
+<div style="margin-bottom:24px;">
+  <h1 class="page-title">Members</h1>
+  <p class="page-sub">Connect with the Estāte community</p>
 </div>
 
-<!-- Search & Filters -->
-<div class="ec-card mb-4">
-  <div class="ec-card-body">
-    <form method="get" class="d-flex gap-3 flex-wrap align-items-end">
-      <div class="flex-grow-1">
-        <label class="form-label small fw-600 text-muted">Search</label>
-        <div class="input-group">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Name, location..." value="{{ search }}">
-        </div>
-      </div>
-      <div>
-        <label class="form-label small fw-600 text-muted">Role</label>
-        <select name="role" class="form-select">
-          <option value="">All Roles</option>
-          <option value="tenant" {% if role_filter == 'tenant' %}selected{% endif %}>Tenants</option>
-          <option value="landlord" {% if role_filter == 'landlord' %}selected{% endif %}>Landlords</option>
-          <option value="agent" {% if role_filter == 'agent' %}selected{% endif %}>Agents</option>
-        </select>
-      </div>
-      <div>
-        <button type="submit" class="btn btn-primary rounded-pill px-4">Filter</button>
-        <a href="{% url 'community:members' %}" class="btn btn-light rounded-pill px-3 ms-1">Reset</a>
-      </div>
-    </form>
+<form method="get" class="search-bar">
+  <input type="text" name="q" class="search-input" placeholder="Search by name or username…" value="{{ request.GET.q }}">
+  <div class="role-filter">
+    <a href="?" class="role-pill {% if not request.GET.role %}active{% endif %}">All</a>
+    <a href="?role=landlord" class="role-pill {% if request.GET.role == 'landlord' %}active{% endif %}">Landlords</a>
+    <a href="?role=agent" class="role-pill {% if request.GET.role == 'agent' %}active{% endif %}">Agents</a>
+    <a href="?role=tenant" class="role-pill {% if request.GET.role == 'tenant' %}active{% endif %}">Tenants</a>
   </div>
-</div>
+</form>
 
-<!-- Members Grid -->
-<div class="row g-3">
+<p class="section-count">{{ members.count }} member{{ members.count|pluralize }} found</p>
+
+<div class="members-grid">
   {% for member in members %}
-  <div class="col-md-6">
-    <div class="ec-card h-100" style="border-radius:14px;">
-      <div class="ec-card-body">
-        <div class="d-flex gap-3 align-items-center mb-3">
-          {% if member.avatar %}
-            <img src="{{ member.avatar.url }}" class="rounded-circle" style="width:56px;height:56px;object-fit:cover;" alt="">
-          {% else %}
-            <div class="post-avatar-placeholder bg-role-{{ member.role }}" style="width:56px;height:56px;font-size:18px;border-radius:50%;">
-              {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}{% if not member.user.first_name %}{{ member.user.username|slice:":2"|upper }}{% endif %}
-            </div>
-          {% endif %}
-          <div class="flex-grow-1 overflow-hidden">
-            <div class="d-flex align-items-center gap-2">
-              <a href="{% url 'community:profile' username=member.user.username %}" class="fw-700 text-dark text-decoration-none text-truncate">
-                {{ member.user.get_full_name|default:member.user.username }}
-              </a>
-              {% if member.verified %}
-                <i class="bi bi-patch-check-fill text-primary" style="font-size:13px;"></i>
-              {% endif %}
-            </div>
-            <span class="role-pill role-{{ member.role }}"><i class="{{ member.role_icon }}"></i> {{ member.get_role_display }}</span>
-          </div>
+  <div class="member-card">
+    <div class="member-cover {{ member.role }}">
+      <div class="member-avatar {{ member.role }}">{{ member.username|first|upper }}</div>
+    </div>
+    <div class="member-body">
+      <a href="{% url 'community:profile' member.username %}" class="member-name">{{ member.get_full_name|default:member.username }}</a>
+      <div class="member-role">{{ member.role }}</div>
+      <div class="member-stats">
+        <div class="member-stat">
+          <div class="member-stat-val">{{ member.posts.count|default:"0" }}</div>
+          <div class="member-stat-label">Posts</div>
         </div>
-
-        {% if member.bio %}
-          <p class="text-muted small mb-3" style="line-height:1.5;">{{ member.bio|truncatechars:80 }}</p>
-        {% endif %}
-
-        <div class="d-flex gap-3 mb-3">
-          {% if member.location %}
-          <div class="text-muted-sm"><i class="bi bi-geo-alt me-1"></i>{{ member.location }}</div>
-          {% endif %}
-          <div class="text-muted-sm"><i class="bi bi-people me-1"></i>{{ member.follower_count }} followers</div>
+        <div class="member-stat">
+          <div class="member-stat-val">{{ member.followers.count|default:"0" }}</div>
+          <div class="member-stat-label">Followers</div>
         </div>
-
-        {% if member != profile %}
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary rounded-pill flex-grow-1 follow-btn-card"
-                  data-username="{{ member.user.username }}"
-                  onclick="toggleFollowCard('{{ member.user.username }}', this)">
-            <i class="bi bi-person-plus me-1"></i>Follow
+        <div class="member-stat">
+          <div class="member-stat-val">{{ member.following.count|default:"0" }}</div>
+          <div class="member-stat-label">Following</div>
+        </div>
+      </div>
+      <div class="member-actions">
+        {% if member != request.user %}
+        <form method="post" action="{% url 'community:toggle_follow' member.username %}" style="flex:1;">
+          {% csrf_token %}
+          <button class="member-follow {% if request.user in member.followers.all %}following{% endif %}" type="submit">
+            {% if request.user in member.followers.all %}Following{% else %}Follow{% endif %}
           </button>
-          <a href="{% url 'community:conversation' username=member.user.username %}" class="btn btn-sm btn-light rounded-pill">
-            <i class="bi bi-chat"></i>
-          </a>
-          <a href="{% url 'community:profile' username=member.user.username %}" class="btn btn-sm btn-light rounded-pill">
-            <i class="bi bi-eye"></i>
-          </a>
-        </div>
-        {% else %}
-        <a href="{% url 'community:edit_profile' %}" class="btn btn-sm btn-light rounded-pill w-100">
-          <i class="bi bi-pencil me-1"></i>Edit Profile
+        </form>
+        <a href="{% url 'community:conversation' member.username %}" class="member-msg">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 10a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1h10a1 1 0 011 1v7z"/></svg>
         </a>
+        {% else %}
+        <a href="{% url 'community:edit_profile' %}" class="member-follow" style="text-align:center;display:block;">Edit Profile</a>
         {% endif %}
       </div>
     </div>
   </div>
   {% empty %}
-  <div class="col-12">
-    <div class="ec-card">
-      <div class="ec-card-body text-center py-5">
-        <i class="bi bi-people display-3 text-muted opacity-25 d-block mb-3"></i>
-        <h6 class="fw-600">No members found</h6>
-        <p class="text-muted small">Try adjusting your search or filters.</p>
-      </div>
-    </div>
+  <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-tertiary);">
+    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;margin-bottom:16px;opacity:.3;"><circle cx="18" cy="16" r="8"/><path d="M2 42c0-8.8 7.2-14 16-14"/><circle cx="36" cy="16" r="6"/><path d="M34 28c4.4 0 10 2.4 10 8"/></svg>
+    <p style="font-size:13px;">No members found.</p>
   </div>
   {% endfor %}
 </div>
 
-<!-- Pagination -->
 {% if members.has_other_pages %}
-<div class="d-flex justify-content-center gap-2 mt-4 mb-5">
-  {% if members.has_previous %}
-    <a href="?page={{ members.previous_page_number }}&role={{ role_filter }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
-      <i class="bi bi-chevron-left"></i> Prev
-    </a>
-  {% endif %}
-  <span class="btn btn-sm btn-light rounded-pill disabled">{{ members.number }} / {{ members.paginator.num_pages }}</span>
-  {% if members.has_next %}
-    <a href="?page={{ members.next_page_number }}&role={{ role_filter }}&q={{ search }}" class="btn btn-sm btn-light rounded-pill">
-      Next <i class="bi bi-chevron-right"></i>
-    </a>
-  {% endif %}
+<div style="display:flex;justify-content:center;gap:8px;margin-top:24px;">
+  {% if members.has_previous %}<a href="?page={{ members.previous_page_number }}" class="btn-estate">← Prev</a>{% endif %}
+  <span style="padding:8px 16px;font-size:12px;color:var(--text-tertiary);">{{ members.number }} / {{ members.paginator.num_pages }}</span>
+  {% if members.has_next %}<a href="?page={{ members.next_page_number }}" class="btn-estate">Next →</a>{% endif %}
 </div>
 {% endif %}
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function toggleFollowCard(username, btn) {
-  ajaxPost(`/community/profile/${username}/follow/`, btn, (data) => {
-    btn.innerHTML = data.following
-      ? '<i class="bi bi-person-check me-1"></i>Following'
-      : '<i class="bi bi-person-plus me-1"></i>Follow';
-    btn.className = data.following
-      ? 'btn btn-sm btn-primary rounded-pill flex-grow-1 follow-btn-card'
-      : 'btn btn-sm btn-outline-primary rounded-pill flex-grow-1 follow-btn-card';
-  });
-}
-</script>
 {% endblock %}

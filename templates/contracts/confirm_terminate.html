@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Terminate Contract{% endblock %}
+
+{% block content %}
+
+<style>
+.container{
+  max-width:700px;
+  margin:auto;
+}
+
+/* CARD */
+.card{
+  background:var(--bg-card);
+  border:0.5px solid var(--border-light);
+  border-radius:16px;
+  padding:24px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.03);
+}
+
+/* HEADER */
+.header{
+  margin-bottom:24px;
+}
+
+.title{
+  font-size:20px;
+  font-weight:600;
+  color:var(--text-primary);
+}
+
+.sub{
+  margin-top:6px;
+  font-size:13px;
+  color:var(--text-secondary);
+}
+
+/* WARNING */
+.warning{
+  background:#fff7ed;
+  border:1px solid #fdba74;
+  color:#9a3412;
+  padding:14px;
+  border-radius:12px;
+  font-size:13px;
+  margin-bottom:24px;
+  line-height:1.6;
+}
+
+/* DETAILS */
+.details{
+  border:0.5px solid var(--border-light);
+  border-radius:12px;
+  overflow:hidden;
+  margin-bottom:24px;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:14px 16px;
+  border-bottom:0.5px solid var(--border-light);
+  font-size:13px;
+}
+
+.row:last-child{
+  border-bottom:none;
+}
+
+.label{
+  color:var(--text-secondary);
+}
+
+.value{
+  font-weight:500;
+  color:var(--text-primary);
+  text-align:right;
+}
+
+/* STATUS */
+.badge{
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:500;
+}
+
+.active{
+  background:#d1fae5;
+  color:#065f46;
+}
+
+.pending{
+  background:#fef3c7;
+  color:#92400e;
+}
+
+.cancelled{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+/* ACTIONS */
+.actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.btn{
+  padding:10px 16px;
+  border:none;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  text-decoration:none;
+  transition:0.2s;
+}
+
+.btn-secondary{
+  background:#f3f4f6;
+  color:#111827;
+}
+
+.btn-secondary:hover{
+  background:#e5e7eb;
+}
+
+.btn-danger{
+  background:#dc2626;
+  color:white;
+}
+
+.btn-danger:hover{
+  opacity:0.92;
+}
+</style>
+
+<div class="container">
+
+  <div class="card">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="title">
+        Terminate Contract
+      </div>
+
+      <div class="sub">
+        You are about to permanently terminate this lease agreement.
+      </div>
+    </div>
+
+    <!-- WARNING -->
+    <div class="warning">
+      ⚠ This action will:
+      <br><br>
+
+      • Set the contract status to cancelled<br>
+      • Mark the property as available again<br>
+      • Remove the tenant from the property<br>
+      • Notify all related users
+    </div>
+
+    <!-- CONTRACT DETAILS -->
+    <div class="details">
+
+      <div class="row">
+        <div class="label">Property</div>
+        <div class="value">
+          {{ contract.property.title }}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="label">Address</div>
+        <div class="value">
+          {{ contract.property.address }}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="label">Tenant</div>
+        <div class="value">
+          {{ contract.tenant.user.get_full_name|default:contract.tenant.user.username }}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="label">Monthly Rent</div>
+        <div class="value">
+          ${{ contract.rent_amount }}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="label">Lease Period</div>
+        <div class="value">
+          {{ contract.start_date|date:"M j, Y" }}
+          →
+          {{ contract.end_date|date:"M j, Y" }}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="label">Current Status</div>
+
+        <div class="value">
+          <span class="badge
+            {% if contract.status == 'active' %}
+              active
+            {% elif contract.status == 'pending' %}
+              pending
+            {% else %}
+              cancelled
+            {% endif %}
+          ">
+            {{ contract.get_status_display }}
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ACTIONS -->
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="actions">
+
+        <a href="{% url 'contract_detail' contract.pk %}"
+           class="btn btn-secondary">
+          Cancel
+        </a>
+
+        <button type="submit"
+                class="btn btn-danger">
+          Terminate Contract
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+{% endblock %}

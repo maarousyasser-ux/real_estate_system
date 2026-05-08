@@ -1,156 +1,192 @@
 {% extends "base.html" %}
-{% block title %}Post{% endblock %}
+{% block title %}Post — Estāte{% endblock %}
 
-{% block content %}
-<div class="d-flex align-items-center gap-3 mb-4">
-  <a href="{% url 'community:feed' %}" class="btn btn-light btn-sm rounded-circle">
-    <i class="bi bi-arrow-left"></i>
-  </a>
-  <h5 class="fw-700 mb-0">Post</h5>
-</div>
+{% block extra_head %}
+<style>
+  .detail-layout { display:grid; grid-template-columns: 1fr 300px; gap:24px; align-items:start; max-width:960px; }
+  @media(max-width:900px){ .detail-layout { grid-template-columns:1fr; } .detail-aside { display:none; } }
 
-<!-- Post -->
-<div class="ec-card mb-3">
-  <div class="ec-card-body">
-    <div class="d-flex align-items-start gap-3 mb-3">
-      <a href="{% url 'community:profile' username=post.author.user.username %}">
-        {% if post.author.avatar %}
-          <img src="{{ post.author.avatar.url }}" class="post-author-avatar" />
-        {% else %}
-          <div class="post-avatar-placeholder bg-role-{{ post.author.role }}">
-            {{ post.author.user.first_name|first|upper }}{{ post.author.user.last_name|first|upper }}{% if not post.author.user.first_name %}{{ post.author.user.username|slice:":2"|upper }}{% endif %}
-          </div>
-        {% endif %}
-      </a>
-      <div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <a href="{% url 'community:profile' username=post.author.user.username %}" class="fw-600 text-dark text-decoration-none">
-            {{ post.author.user.get_full_name|default:post.author.user.username }}
-          </a>
-          <span class="role-pill role-{{ post.author.role }}">{{ post.author.get_role_display }}</span>
-          <span class="badge bg-{{ post.type_color }} bg-opacity-10 text-{{ post.type_color }} rounded-pill" style="font-size:10px;">{{ post.get_post_type_display }}</span>
-        </div>
-        <div class="text-muted-sm">{{ post.created_at|date:"M j, Y · H:i" }}</div>
-      </div>
-    </div>
+  .post-full { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:20px; }
+  .post-head { display:flex; align-items:center; gap:12px; padding:20px 22px 0; }
+  .post-avatar-lg { width:44px; height:44px; border-radius:50%; background:var(--role-color); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:#fff; flex-shrink:0; text-decoration:none; }
+  .post-author-name { font-size:14px; font-weight:600; color:var(--text-primary); text-decoration:none; }
+  .post-author-name:hover { color:var(--role-color); }
+  .post-role-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
+  .post-role-badge.landlord { background:var(--bg-secondary); color:var(--text-secondary); }
+  .post-role-badge.agent { background:var(--blue-bg); color:var(--blue-text); }
+  .post-role-badge.tenant { background:var(--green-bg); color:var(--green-text); }
+  .post-full-body { padding:18px 22px; font-size:14px; color:var(--text-primary); line-height:1.7; white-space:pre-wrap; }
+  .post-full-image { width:100%; max-height:500px; object-fit:cover; }
+  .post-full-footer { display:flex; align-items:center; gap:6px; padding:14px 22px; border-top:0.5px solid var(--border-light); }
+  .action-btn { display:flex; align-items:center; gap:5px; padding:7px 13px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; color:var(--text-secondary); background:none; border:none; cursor:pointer; transition:background .15s; font-family:'DM Sans',sans-serif; text-decoration:none; }
+  .action-btn:hover { background:var(--bg-secondary); color:var(--text-primary); }
+  .action-btn.liked { color:var(--red-text); }
+  .action-btn svg { width:14px; height:14px; }
+  .action-btn.liked svg { fill:currentColor; }
 
-    <p style="font-size:15px;line-height:1.7;">{{ post.content }}</p>
-    {% if post.image %}
-      <img src="{{ post.image.url }}" class="img-fluid rounded-3 mb-3" style="max-height:400px;width:100%;object-fit:cover;" />
-    {% endif %}
-  </div>
+  /* Delete action */
+  .delete-btn { margin-left:auto; color:var(--red-text); }
+  .delete-btn:hover { background:var(--red-bg); }
 
-  <div class="post-actions d-flex px-2 py-1">
-    <button class="post-action-btn like-btn {% if user_liked %}liked{% endif %}"
-            onclick="toggleLikeDetail({{ post.id }}, this)">
-      <i class="bi {% if user_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
-      <span class="like-count">{{ post.like_count }}</span> Like
-    </button>
-    <a href="{% url 'community:conversation' username=post.author.user.username %}" class="post-action-btn">
-      <i class="bi bi-send"></i> Message
-    </a>
-  </div>
-</div>
+  /* Comments section */
+  .comments-section { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); padding:22px; }
+  .comments-title { font-family:'DM Serif Display',serif; font-size:18px; color:var(--text-primary); margin-bottom:20px; }
+  .comment-card { display:flex; gap:12px; margin-bottom:20px; }
+  .comment-avatar { width:36px; height:36px; border-radius:50%; background:var(--role-color); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#fff; flex-shrink:0; }
+  .comment-content { flex:1; min-width:0; }
+  .comment-header { display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+  .comment-name { font-size:12px; font-weight:600; color:var(--text-primary); text-decoration:none; }
+  .comment-name:hover { color:var(--role-color); }
+  .comment-time { font-size:11px; color:var(--text-tertiary); }
+  .comment-body { font-size:13px; color:var(--text-primary); line-height:1.6; background:var(--bg-secondary); padding:10px 14px; border-radius:0 var(--radius-md) var(--radius-md) var(--radius-md); border:0.5px solid var(--border-light); }
+  .comment-divider { height:0.5px; background:var(--border-light); margin:20px 0; }
 
-<!-- Comments -->
-<div class="ec-card">
-  <div class="ec-card-body border-bottom">
-    <div class="fw-700" style="font-size:14px;">{{ post.comment_count }} Comments</div>
-  </div>
+  /* Add comment form */
+  .add-comment { display:flex; gap:12px; align-items:flex-start; }
+  .comment-field { flex:1; background:var(--bg-secondary); border:0.5px solid var(--border-light); border-radius:var(--radius-md); padding:11px 14px; font-size:13px; color:var(--text-primary); font-family:'DM Sans',sans-serif; resize:none; min-height:70px; line-height:1.5; transition:border-color .15s; }
+  .comment-field:focus { outline:none; border-color:var(--border-medium); }
+  .comment-field::placeholder { color:var(--text-tertiary); }
 
-  <!-- Add comment -->
-  <div class="ec-card-body border-bottom">
-    <form method="post" action="{% url 'community:add_comment' pk=post.id %}" class="d-flex gap-3">
-      {% csrf_token %}
-      <div class="flex-grow-1">
-        {{ comment_form.content }}
-      </div>
-      <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 align-self-end">Post</button>
-    </form>
-  </div>
-
-  <!-- Comment list -->
-  {% for comment in comments %}
-  <div class="ec-card-body border-bottom">
-    <div class="d-flex gap-3">
-      {% if comment.author.avatar %}
-        <img src="{{ comment.author.avatar.url }}" class="rounded-circle flex-shrink-0" style="width:36px;height:36px;object-fit:cover;" />
-      {% else %}
-        <div class="post-avatar-placeholder bg-role-{{ comment.author.role }} flex-shrink-0" style="width:36px;height:36px;font-size:12px;border-radius:50%;">
-          {{ comment.author.user.first_name|first|upper }}{{ comment.author.user.last_name|first|upper }}{% if not comment.author.user.first_name %}{{ comment.author.user.username|slice:":2"|upper }}{% endif %}
-        </div>
-      {% endif %}
-      <div class="flex-grow-1">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <a href="{% url 'community:profile' username=comment.author.user.username %}" class="fw-600 text-dark text-decoration-none" style="font-size:13px;">
-            {{ comment.author.user.get_full_name|default:comment.author.user.username }}
-          </a>
-          <span class="role-pill role-{{ comment.author.role }}" style="font-size:10px;">{{ comment.author.get_role_display }}</span>
-          <span class="text-muted-sm">{{ comment.created_at|timesince }} ago</span>
-        </div>
-        <p class="mb-2" style="font-size:14px;line-height:1.5;">{{ comment.content }}</p>
-
-        <!-- Reply form toggle -->
-        <button class="btn btn-sm text-muted p-0" style="font-size:12px;" onclick="toggleReply({{ comment.id }})">
-          <i class="bi bi-reply me-1"></i>Reply
-        </button>
-
-        <div id="reply-form-{{ comment.id }}" style="display:none;" class="mt-2">
-          <form method="post" action="{% url 'community:add_comment' pk=post.id %}" class="d-flex gap-2">
-            {% csrf_token %}
-            <input type="hidden" name="parent_id" value="{{ comment.id }}">
-            <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a reply..." required>
-            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Reply</button>
-          </form>
-        </div>
-
-        <!-- Replies -->
-        {% for reply in comment.replies.all %}
-        <div class="d-flex gap-2 mt-3 ms-2">
-          {% if reply.author.avatar %}
-            <img src="{{ reply.author.avatar.url }}" class="rounded-circle flex-shrink-0" style="width:28px;height:28px;object-fit:cover;" />
-          {% else %}
-            <div class="post-avatar-placeholder bg-role-{{ reply.author.role }} flex-shrink-0" style="width:28px;height:28px;font-size:10px;border-radius:50%;">
-              {{ reply.author.user.first_name|first|upper }}{% if not reply.author.user.first_name %}{{ reply.author.user.username|slice:":1"|upper }}{% endif %}
-            </div>
-          {% endif %}
-          <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <a href="{% url 'community:profile' username=reply.author.user.username %}" class="fw-600 text-dark text-decoration-none" style="font-size:12px;">
-                {{ reply.author.user.get_full_name|default:reply.author.user.username }}
-              </a>
-              <span class="text-muted-sm">{{ reply.created_at|timesince }} ago</span>
-            </div>
-            <p class="mb-0" style="font-size:13px;line-height:1.5;">{{ reply.content }}</p>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-  {% empty %}
-  <div class="ec-card-body text-center py-4">
-    <p class="text-muted small mb-0">Be the first to comment!</p>
-  </div>
-  {% endfor %}
-</div>
+  /* Sidebar — post info */
+  .info-widget { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); padding:18px; margin-bottom:16px; }
+  .info-title { font-size:11px; font-weight:600; color:var(--text-tertiary); letter-spacing:.6px; text-transform:uppercase; margin-bottom:14px; }
+  .stat-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:0.5px solid var(--border-light); }
+  .stat-row:last-child { border-bottom:none; }
+  .stat-label { font-size:12px; color:var(--text-secondary); }
+  .stat-val { font-size:13px; font-weight:600; color:var(--text-primary); }
+  .liker-row { display:flex; gap:-6px; margin-top:10px; }
+  .liker-avatar { width:26px; height:26px; border-radius:50%; border:2px solid var(--bg-card); background:var(--role-color); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:#fff; margin-left:-6px; }
+  .liker-avatar:first-child { margin-left:0; }
+</style>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-function toggleLikeDetail(postId, btn) {
-  ajaxPost(`/community/post/${postId}/like/`, btn, (data) => {
-    const icon = btn.querySelector('i');
-    const count = btn.querySelector('.like-count');
-    icon.className = data.liked ? 'bi bi-heart-fill' : 'bi bi-heart';
-    btn.className = data.liked ? 'post-action-btn like-btn liked' : 'post-action-btn like-btn';
-    count.textContent = data.count;
-  });
-}
+{% block content %}
+<div style="margin-bottom:20px;">
+  <a href="{% url 'community:feed' %}" class="btn-estate" style="display:inline-flex;align-items:center;gap:6px;">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px;"><path d="M10 4L6 8l4 4"/></svg>
+    Back to Feed
+  </a>
+</div>
 
-function toggleReply(commentId) {
-  const form = document.getElementById(`reply-form-${commentId}`);
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
-}
-</script>
+<div class="detail-layout">
+  <div>
+    <!-- Full post -->
+    <div class="post-full">
+      <div class="post-head">
+        <a href="{% url 'community:profile' post.author.username %}" class="post-avatar-lg" style="{% if post.author.role == 'agent' %}background:var(--blue-text){% elif post.author.role == 'tenant' %}background:var(--green-text){% endif %}">
+          {{ post.author.username|first|upper }}
+        </a>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <a href="{% url 'community:profile' post.author.username %}" class="post-author-name">{{ post.author.get_full_name|default:post.author.username }}</a>
+            <span class="post-role-badge {{ post.author.role }}">{{ post.author.role }}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">{{ post.created_at|date:"M d, Y · g:i A" }}</div>
+        </div>
+      </div>
+
+      <div class="post-full-body">{{ post.content }}</div>
+
+      {% if post.image %}
+      <img src="{{ post.image.url }}" alt="Post image" class="post-full-image">
+      {% endif %}
+
+      <div class="post-full-footer">
+        <a href="{% url 'community:toggle_like' post.pk %}" class="action-btn {% if request.user in post.likes.all %}liked{% endif %}">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14s-6-3.5-6-8a4 4 0 018 0 4 4 0 018 0c0 4.5-6 8-6 8z"/></svg>
+          {{ post.likes.count }} {{ post.likes.count|pluralize:"Like,Likes" }}
+        </a>
+        <button class="action-btn" onclick="document.getElementById('commentField').focus()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 10a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1h10a1 1 0 011 1v7z"/></svg>
+          {{ post.comments.count }} {{ post.comments.count|pluralize:"Comment,Comments" }}
+        </button>
+        {% if request.user == post.author %}
+        <form method="post" action="{% url 'community:delete_post' post.pk %}" style="margin-left:auto;" onsubmit="return confirm('Delete this post?')">
+          {% csrf_token %}
+          <button type="submit" class="action-btn delete-btn">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M5 4V3h6v1M6 7v5M10 7v5M4 4l1 9h6l1-9"/></svg>
+            Delete Post
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Comments -->
+    <div class="comments-section">
+      <div class="comments-title">{{ post.comments.count }} Comments</div>
+
+      {% for comment in comments %}
+      <div class="comment-card">
+        <a href="{% url 'community:profile' comment.author.username %}" class="comment-avatar" style="{% if comment.author.role == 'agent' %}background:var(--blue-text){% elif comment.author.role == 'tenant' %}background:var(--green-text){% endif %}">
+          {{ comment.author.username|first|upper }}
+        </a>
+        <div class="comment-content">
+          <div class="comment-header">
+            <a href="{% url 'community:profile' comment.author.username %}" class="comment-name">{{ comment.author.get_full_name|default:comment.author.username }}</a>
+            <span class="post-role-badge {{ comment.author.role }}" style="font-size:9px;">{{ comment.author.role }}</span>
+            <span class="comment-time">{{ comment.created_at|timesince }} ago</span>
+          </div>
+          <div class="comment-body">{{ comment.content }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <p style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:20px 0;">No comments yet — start the conversation!</p>
+      <div class="comment-divider"></div>
+      {% endfor %}
+
+      {% if comments %}
+      <div class="comment-divider"></div>
+      {% endif %}
+
+      <!-- Add comment -->
+      <form method="post" action="{% url 'community:add_comment' post.pk %}">
+        {% csrf_token %}
+        <div class="add-comment">
+          <div class="comment-avatar" style="font-size:10px;">{{ request.user.username|first|upper }}</div>
+          <div style="flex:1;">
+            <textarea name="content" class="comment-field" id="commentField" placeholder="Write a comment…" required></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+              <button type="submit" class="btn-estate primary">
+                Post Comment
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="detail-aside">
+    <div class="info-widget">
+      <div class="info-title">Post Stats</div>
+      <div class="stat-row"><span class="stat-label">Likes</span><span class="stat-val">{{ post.likes.count }}</span></div>
+      <div class="stat-row"><span class="stat-label">Comments</span><span class="stat-val">{{ post.comments.count }}</span></div>
+      <div class="stat-row"><span class="stat-label">Posted</span><span class="stat-val">{{ post.created_at|date:"M d" }}</span></div>
+      {% if post.likes.all %}
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:8px;">Liked by</div>
+        <div class="liker-row">
+          {% for liker in post.likes.all|slice:":8" %}
+          <div class="liker-avatar" title="{{ liker.username }}">{{ liker.username|first|upper }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="info-widget">
+      <div class="info-title">About the Author</div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;">
+        <a href="{% url 'community:profile' post.author.username %}" class="post-avatar-lg" style="{% if post.author.role == 'agent' %}background:var(--blue-text){% elif post.author.role == 'tenant' %}background:var(--green-text){% endif %}font-size:14px;width:44px;height:44px;text-decoration:none;">{{ post.author.username|first|upper }}</a>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);">{{ post.author.get_full_name|default:post.author.username }}</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">{{ post.author.role }}</div>
+        </div>
+      </div>
+      <a href="{% url 'community:profile' post.author.username %}" class="btn-estate" style="width:100%;justify-content:center;">View Profile</a>
+    </div>
+  </aside>
+</div>
 {% endblock %}

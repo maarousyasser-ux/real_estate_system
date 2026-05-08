@@ -1,128 +1,256 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import MaintenanceRequest
 from contracts.models import Contract
-from notifications.services import create_notification
+from .forms import (
+    MaintenanceCommentForm,
+    MaintenanceRequestForm,
+    MaintenanceStatusForm
+)
+from .models import MaintenanceRequest
 
 
-# LIST
+# =====================================================
+# LIST VIEW
+# =====================================================
 @login_required
-def maintenance_list(request):
+def request_list(request):
 
-    user = request.user
+    is_staff = request.user.role in ['agent', 'landlord']
 
-    if user.role == "tenant":
-        requests = MaintenanceRequest.objects.filter(created_by=user)
+    if request.user.role == 'tenant':
+        qs = MaintenanceRequest.objects.filter(tenant=request.user)
 
-    elif user.role == "agent":
-        requests = MaintenanceRequest.objects.filter(contract__agent=user)
+    elif request.user.role == 'landlord':
+        qs = MaintenanceRequest.objects.filter(contract__landlord=request.user)
 
-    elif user.role == "landlord":
-        requests = MaintenanceRequest.objects.filter(contract__landlord=user)
+    elif request.user.role == 'agent':
+        qs = MaintenanceRequest.objects.filter(contract__agent=request.user)
 
     else:
-        requests = MaintenanceRequest.objects.none()
+        qs = MaintenanceRequest.objects.none()
 
-    return render(request, "maintenance/maintenance_list.html", {
-        "requests": requests
+    # Filters
+    status_filter = request.GET.get('status', '')
+    priority_filter = request.GET.get('priority', '')
+    category_filter = request.GET.get('category', '')
+    search = request.GET.get('q', '')
+
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    if priority_filter:
+        qs = qs.filter(priority=priority_filter)
+
+    if category_filter:
+        qs = qs.filter(category=category_filter)
+
+    if search:
+        qs = qs.filter(title__icontains=search)
+
+    page = Paginator(qs, 10).get_page(request.GET.get('page'))
+
+    counts = {}
+
+    if request.user.role == 'landlord':
+        all_qs = MaintenanceRequest.objects.filter(contract__landlord=request.user)
+
+        counts = {
+            'total': all_qs.count(),
+            'pending': all_qs.filter(status='pending').count(),
+            'in_progress': all_qs.filter(status='in_progress').count(),
+            'resolved': all_qs.filter(status='resolved').count(),
+            'urgent': all_qs.filter(priority='urgent').count(),
+        }
+
+    return render(request, 'maintenance/request_list.html', {
+        'page_obj': page,
+        'is_staff': is_staff,
+        'counts': counts,
+        'status_choices': MaintenanceRequest.STATUS_CHOICES,
+        'priority_choices': MaintenanceRequest.PRIORITY_CHOICES,
+        'category_choices': MaintenanceRequest.CATEGORY_CHOICES,
+        'current_status': status_filter,
+        'current_priority': priority_filter,
+        'current_category': category_filter,
+        'search': search,
     })
 
 
-# CREATE (TENANT ONLY)
+# =====================================================
+# CREATE REQUEST (FIXED)
+# =====================================================
 @login_required
-def create_request(request):
+def request_create(request):
 
-    if request.user.role != "tenant":
-        return redirect("dashboard")
+    if request.user.role != 'tenant':
+        messages.error(request, "Only tenants can create requests.")
+        return redirect('maintenance:list')
 
-    contract = Contract.objects.filter(
+    # 🔥 tenant MUST choose contract
+    contracts = Contract.objects.filter(
         tenant__user=request.user,
-        status="active"
-    ).select_related("property", "agent", "landlord").first()
+        status='active'
+    ).select_related('property', 'landlord')
 
-    if not contract:
-        return redirect("dashboard")
+    if not contracts.exists():
+        messages.error(request, "You are not renting any property.")
+        return redirect('maintenance:list')
 
-    if request.method == "POST":
+    if request.method == 'POST':
 
-        req = MaintenanceRequest.objects.create(
-            contract=contract,
-            title=request.POST.get("title"),
-            description=request.POST.get("description"),
-            priority=request.POST.get("priority", "medium"),
-            created_by=request.user
-        )
+        form = MaintenanceRequestForm(request.POST, request.FILES)
 
-        # ─────────────────────────────
-        # NOTIFICATIONS (FIXED)
-        # ─────────────────────────────
+        if form.is_valid():
 
-        # Notify agent
-        if contract.agent:
-            create_notification(
-                contract.agent,
-                "New Maintenance Request",
-                f"{req.title} in {contract.property.title}",
-                type="maintenance"
+            contract_id = request.POST.get('contract')
+
+            contract = get_object_or_404(
+                Contract,
+                id=contract_id,
+                tenant__user=request.user,
+                status='active'
             )
 
-        # Notify landlord
-        if contract.landlord:
-            create_notification(
-                contract.landlord,
-                "New Maintenance Request",
-                f"{req.title} submitted for {contract.property.title}",
-                type="maintenance"
-            )
+            req = form.save(commit=False)
 
-        # Confirm to tenant
-        create_notification(
-            request.user,
-            "Request Submitted",
-            "Your maintenance request has been sent successfully.",
-            type="maintenance"
-        )
+            req.tenant = request.user
+            req.contract = contract
 
-        return redirect("maintenance_list")
+            req.property_address = contract.property.address
+            req.unit_number = getattr(contract, 'unit_number', '')
 
-    return render(request, "maintenance/maintenance_create.html")
+            req.save()
 
-# UPDATE STATUS (AGENT / LANDLORD)
-@login_required
-def update_status(request, pk):
+            messages.success(request, "Request submitted successfully.")
 
-    req = get_object_or_404(MaintenanceRequest, pk=pk)
+            return redirect('maintenance:detail', pk=req.pk)
 
-    if request.user.role not in ["agent", "landlord"]:
-        return redirect("dashboard")
+    else:
+        form = MaintenanceRequestForm()
 
-    if request.method == "POST":
-
-        status = request.POST.get("status")
-        req.status = status
-
-        if status == "resolved":
-            req.resolved_at = timezone.now()
-
-        req.save()
-
-    return redirect("maintenance_list")
-
-
-
-
-
-
-
-
-
-
-
-def maintenance_detail(request, pk):
-    req = get_object_or_404(MaintenanceRequest, pk=pk)
-
-    return render(request, "maintenance/maintenance_detail.html", {
-        "request_obj": req
+    return render(request, 'maintenance/request_form.html', {
+        'form': form,
+        'title': 'New Maintenance Request',
+        'contracts': contracts,
     })
+
+
+# =====================================================
+# DETAIL VIEW (CORRECT OWNERSHIP LOGIC)
+# =====================================================
+@login_required
+def request_detail(request, pk):
+
+    req = get_object_or_404(
+        MaintenanceRequest.objects.select_related('contract'),
+        pk=pk
+    )
+
+    allowed = (
+        req.tenant == request.user or
+        (req.contract and req.contract.landlord == request.user) or
+        (req.contract and req.contract.agent == request.user)
+    )
+
+    if not allowed:
+        messages.error(request, "Access denied.")
+        return redirect('maintenance:list')
+
+    is_staff = request.user.role in ['agent', 'landlord']
+
+    comments = (
+        req.comments.all()
+        if is_staff
+        else req.comments.filter(is_internal=False)
+    )
+
+    comment_form = MaintenanceCommentForm()
+    status_form = MaintenanceStatusForm(instance=req) if is_staff else None
+
+    if request.method == 'POST':
+
+        action = request.POST.get('action')
+
+        if action == 'comment':
+
+            form = MaintenanceCommentForm(request.POST)
+
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.request = req
+                comment.author = request.user
+
+                if not is_staff:
+                    comment.is_internal = False
+
+                comment.save()
+
+                messages.success(request, "Comment added.")
+                return redirect('maintenance:detail', pk=pk)
+
+        elif action == 'update_status' and is_staff:
+
+            form = MaintenanceStatusForm(request.POST, instance=req)
+
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Request updated.")
+                return redirect('maintenance:detail', pk=pk)
+
+    return render(request, 'maintenance/request_detail.html', {
+        'req': req,
+        'comments': comments,
+        'comment_form': comment_form,
+        'status_form': status_form,
+        'is_staff': is_staff,
+    })
+
+
+# =====================================================
+# EDIT + CLOSE (UNCHANGED LOGIC BUT SAFE)
+# =====================================================
+@login_required
+def request_edit(request, pk):
+
+    req = get_object_or_404(
+        MaintenanceRequest,
+        pk=pk,
+        tenant=request.user
+    )
+
+    if req.status != 'pending':
+        messages.warning(request, "Only pending requests can be edited.")
+        return redirect('maintenance:detail', pk=pk)
+
+    form = MaintenanceRequestForm(request.POST or None, request.FILES or None, instance=req)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Updated successfully.")
+        return redirect('maintenance:detail', pk=pk)
+
+    return render(request, 'maintenance/request_form.html', {
+        'form': form,
+        'title': 'Edit Request',
+        'req': req,
+    })
+
+
+@login_required
+def request_close(request, pk):
+
+    req = get_object_or_404(
+        MaintenanceRequest,
+        pk=pk,
+        tenant=request.user
+    )
+
+    if req.status == 'resolved':
+        req.status = 'closed'
+        req.save()
+        messages.success(request, "Request closed.")
+
+    return redirect('maintenance:list')

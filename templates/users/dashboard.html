@@ -367,14 +367,56 @@
     </tbody></table>
   </div>
   <div class="card">
-    <div class="card-header"><div class="card-title">Maintenance requests</div><a href="#" class="view-all">View all →</a></div>
-    <table class="estate-table"><thead><tr><th>Issue</th><th>Unit</th><th>Priority</th><th>Status</th></tr></thead><tbody>
-      <tr><td>Plumbing leak</td><td class="muted">3A</td><td style="color:var(--red-text)">High</td><td><span class="pill progress">In progress</span></td></tr>
-      <tr><td>AC broken</td><td class="muted">9B</td><td style="color:var(--red-text)">High</td><td><span class="pill open">Open</span></td></tr>
-      <tr><td>Door lock</td><td class="muted">6C</td><td class="muted">Med</td><td><span class="pill done">Done</span></td></tr>
-    </tbody></table>
+    <div class="card-header">
+      <div class="card-title">Maintenance requests</div>
+      <a href="{% url 'maintenance:list' %}" class="view-all">View all →</a>
+    </div>
+  
+    {% if requests %}
+    <table class="estate-table">
+      <thead>
+        <tr>
+          <th>Issue</th>
+          <th>Unit</th>
+          <th>Priority</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+  
+      <tbody>
+        {% for r in requests %}
+        <tr>
+          <td>{{ r.title }}</td>
+          <td class="muted">{{ r.unit|default:"-" }}</td>
+  
+          <td style="color:
+            {% if r.priority == 'high' %}var(--red-text)
+            {% elif r.priority == 'medium' %}var(--amber-text)
+            {% else %}var(--text-secondary)
+            {% endif %}">
+            {{ r.priority|title }}
+          </td>
+  
+          <td>
+            <span class="pill 
+              {% if r.status == 'open' %}open
+              {% elif r.status == 'in_progress' %}progress
+              {% else %}done
+              {% endif %}">
+              {{ r.status|title }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  
+    {% else %}
+      <div style="padding:20px;color:var(--text-secondary);text-align:center;">
+        No maintenance requests yet.
+      </div>
+    {% endif %}
   </div>
-</div>
 {% endif %}
 
 
@@ -438,83 +480,145 @@
   </a>
 </div>
 
-<!-- Rent due alert -->
-{% if days_until_rent is not None and days_until_rent <= 7 %}
-<div class="rent-alert">
-  <div style="display:flex;align-items:center;gap:12px;min-width:0;">
-    <div class="rent-alert-icon">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M1 7.5h14"/></svg>
-    </div>
-    <div>
-      <div class="rent-alert-title">
-        Rent due {% if days_until_rent == 0 %}today{% elif days_until_rent == 1 %}tomorrow{% else %}in {{ days_until_rent }} days{% endif %} — ${{ tenant_contract.rent_amount|default:"1,250" }}
-      </div>
-      <div class="rent-alert-sub">{{ tenant_contract.property.title|default:"Your unit" }}</div>
-    </div>
-  </div>
-  <a href="#" class="btn-estate primary" style="flex-shrink:0;">Pay now →</a>
-</div>
-{% endif %}
-
-<!-- ── Lease hero card ── -->
+<!-- ── Lease status / hero card ── -->
 <div class="lease-hero">
   <div class="lease-hero-inner">
 
     {% if tenant_contract %}
 
-      <div class="lease-eyebrow">Current lease</div>
-
-      <div class="lease-title">
-        {{ tenant_contract.property.title }}
-      </div>
-
-      <div class="lease-addr">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M8 1a5 5 0 00-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 00-5-5z"/>
-          <circle cx="8" cy="6" r="2"/>
-        </svg>
-        {{ tenant_contract.property.address }}
-      </div>
-
-      <div class="lease-row">
-        <div class="lease-cell">
-          <div class="lease-cell-val">${{ tenant_contract.rent_amount }}</div>
-          <div class="lease-cell-lbl">Monthly rent</div>
+      <!-- 🔴 PENDING CONTRACT -->
+      {% if tenant_contract.status == "pending" %}
+        <div class="lease-eyebrow" style="color:var(--amber-text);">
+          Pending approval
         </div>
 
-        <div class="lease-cell">
-          <div class="lease-cell-val">{{ tenant_contract.start_date|date:"M j, Y" }}</div>
-          <div class="lease-cell-lbl">Lease start</div>
+        <div class="lease-title">
+          Waiting for landlord confirmation
         </div>
 
-        <div class="lease-cell">
-          <div class="lease-cell-val">{{ tenant_contract.end_date|date:"M j, Y" }}</div>
-          <div class="lease-cell-lbl">Lease end</div>
-        </div>
-      </div>
-
-      <!-- Progress -->
-      <div class="lease-progress">
-        <div class="lease-progress-labels">
-          <span>Start</span>
-          <span>
-            {{ tenant_contract.lease_progress_pct }}% complete ·
-            {{ tenant_contract.days_remaining }} days left
-          </span>
-          <span>End</span>
+        <div class="lease-addr">
+          {{ tenant_contract.property.title }}
         </div>
 
-        <div class="lease-progress-track">
-          <div class="lease-progress-fill"
-               style="width: {{ tenant_contract.lease_progress_pct }}%;">
+        <div class="lease-row">
+          <div class="lease-cell">
+            <div class="lease-cell-val">${{ tenant_contract.rent_amount }}</div>
+            <div class="lease-cell-lbl">Proposed rent</div>
+          </div>
+
+          <div class="lease-cell">
+            <div class="lease-cell-val">{{ tenant_contract.start_date|date:"M j, Y" }}</div>
+            <div class="lease-cell-lbl">Start date</div>
+          </div>
+
+          <div class="lease-cell">
+            <div class="lease-cell-val">{{ tenant_contract.end_date|date:"M j, Y" }}</div>
+            <div class="lease-cell-lbl">End date</div>
           </div>
         </div>
-      </div>
+
+        <div style="margin-top:16px; font-size:12px; color:var(--text-secondary);">
+          Your contract is waiting for approval. You will be notified once it becomes active.
+        </div>
+      {% endif %}
+
+
+      <!-- 🟢 ACTIVE CONTRACT -->
+      {% if tenant_contract.status == "active" %}
+        <div class="lease-eyebrow">Active lease</div>
+
+        <div class="lease-title">
+          {{ tenant_contract.property.title }}
+        </div>
+
+        <div class="lease-addr">
+          {{ tenant_contract.property.address }}
+        </div>
+
+        <div class="lease-row">
+          <div class="lease-cell">
+            <div class="lease-cell-val">${{ tenant_contract.rent_amount }}</div>
+            <div class="lease-cell-lbl">Monthly rent</div>
+          </div>
+
+          <div class="lease-cell">
+            <div class="lease-cell-val">{{ tenant_contract.start_date|date:"M j, Y" }}</div>
+            <div class="lease-cell-lbl">Start</div>
+          </div>
+
+          <div class="lease-cell">
+            <div class="lease-cell-val">{{ tenant_contract.end_date|date:"M j, Y" }}</div>
+            <div class="lease-cell-lbl">End</div>
+          </div>
+        </div>
+
+        <!-- Rent alert -->
+        {% if days_until_rent is not None and days_until_rent <= 7 %}
+        <div class="rent-alert">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+            <div class="rent-alert-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="1" y="4" width="14" height="10" rx="1.5"/>
+                <path d="M1 7.5h14"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="rent-alert-title">
+                Rent due {% if days_until_rent == 0 %}today{% elif days_until_rent == 1 %}tomorrow{% else %}in {{ days_until_rent }} days{% endif %}
+                — ${{ tenant_contract.rent_amount }}
+              </div>
+              <div class="rent-alert-sub">{{ tenant_contract.property.title }}</div>
+            </div>
+          </div>
+
+          <a href="#" class="btn-estate primary">Pay now →</a>
+        </div>
+        {% endif %}
+
+        <!-- Progress -->
+        <div class="lease-progress">
+          <div class="lease-progress-labels">
+            <span>Start</span>
+            <span>
+              {{ tenant_contract.lease_progress_pct }}% complete ·
+              {{ tenant_contract.days_remaining }} days left
+            </span>
+            <span>End</span>
+          </div>
+
+          <div class="lease-progress-track">
+            <div class="lease-progress-fill"
+                 style="width: {{ tenant_contract.lease_progress_pct }}%;">
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- ❌ CANCELLED / EXPIRED -->
+      {% if tenant_contract.status == "expired" or tenant_contract.status == "cancelled" %}
+        <div class="lease-eyebrow" style="color:var(--red-text);">
+          Lease ended
+        </div>
+
+        <div class="lease-title">
+          No active lease
+        </div>
+
+        <div style="margin-top:10px; font-size:12px; color:var(--text-secondary);">
+          Your previous contract is no longer active.
+        </div>
+      {% endif %}
 
     {% else %}
 
+      <!-- ⚪ NO CONTRACT -->
       <div class="lease-eyebrow">No active lease</div>
       <div class="lease-title">You don’t have a contract yet</div>
+
+      <div style="margin-top:10px; font-size:12px; color:var(--text-secondary);">
+        Once a landlord assigns you a property, your lease will appear here.
+      </div>
 
     {% endif %}
 
