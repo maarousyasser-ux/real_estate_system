@@ -4,7 +4,6 @@
 
 {% block content %}
 <style>
-  /* ── PAGE HEADER ── */
   .prop-header {
     display: flex;
     align-items: flex-start;
@@ -14,34 +13,23 @@
     gap: 16px;
   }
 
-  /* ── FILTER BAR ── */
-  .filter-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
+  /* ── SEARCH ── */
+  .inventory-controls {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 0.5px solid var(--border-light);
   }
-
-  .search-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 200px;
-    max-width: 320px;
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 11px; top: 50%;
+  .search-wrapper { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .search-input-group { position: relative; flex-grow: 1; max-width: 440px; }
+  .search-icon-abs {
+    position: absolute; left: 12px; top: 50%;
     transform: translateY(-50%);
-    width: 14px; height: 14px;
-    color: var(--text-tertiary);
-    pointer-events: none;
+    width: 15px; height: 15px;
+    color: var(--text-tertiary); pointer-events: none;
   }
-
-  .search-input {
+  .f-input-search {
     width: 100%;
-    padding: 8px 14px 8px 34px;
+    padding: 9px 12px 9px 36px;
     border: 0.5px solid var(--border-medium);
     border-radius: var(--radius-sm);
     font-size: 12px;
@@ -51,90 +39,48 @@
     outline: none;
     transition: border-color 0.15s;
   }
+  .f-input-search:focus { border-color: var(--text-primary); }
+  .f-input-search::placeholder { color: var(--text-tertiary); }
+  .btn-clear { font-size: 12px; color: var(--text-secondary); text-decoration: none; }
+  .btn-clear:hover { color: var(--text-primary); }
 
-  .search-input:focus { border-color: var(--text-primary); }
-  .search-input::placeholder { color: var(--text-tertiary); }
-
-  .filter-select {
-    padding: 8px 12px;
-    border: 0.5px solid var(--border-medium);
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    outline: none;
-    cursor: pointer;
-    appearance: none;
-    padding-right: 28px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3l3 4 3-4' stroke='%23A9A8A5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-  }
-
-  .view-toggle {
-    display: flex;
-    gap: 2px;
-    background: var(--bg-secondary);
-    border: 0.5px solid var(--border-light);
-    border-radius: var(--radius-sm);
-    padding: 2px;
-  }
-
-  .view-btn {
-    width: 30px; height: 30px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 5px;
-    cursor: pointer;
-    color: var(--text-tertiary);
-    transition: background 0.15s, color 0.15s;
-    border: none;
-    background: transparent;
-  }
-
-  .view-btn.active {
-    background: var(--bg-card);
-    color: var(--text-primary);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  }
-
-  .view-btn svg { width: 14px; height: 14px; }
-
-  /* ── STATS STRIP ── */
-  .stats-strip {
+  /* ── STATS ── */
+  .portfolio-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
   }
-
-  .strip-card {
+  .p-stat {
     background: var(--bg-card);
     border: 0.5px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
   }
+  .p-stat.featured { border-color: var(--text-primary); }
+  .p-stat-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--text-tertiary); margin-bottom: 8px; }
+  .p-stat-val { font-size: 24px; font-weight: 500; color: var(--text-primary); letter-spacing: -.5px; }
 
-  .strip-icon {
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+  /* ── LANDLORD PENDING ── */
+  .pending-banner {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--amber-bg);
+    border: 0.5px solid var(--amber-text);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    gap: 12px; flex-wrap: wrap;
   }
+  .pending-tag {
+    font-size: 10px; font-weight: 600;
+    background: var(--amber-text); color: #fff;
+    padding: 2px 8px; border-radius: 20px;
+    margin-bottom: 4px; display: inline-block;
+  }
+  .pending-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .pending-sub   { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
-  .strip-icon svg { width: 16px; height: 16px; }
-  .strip-icon.green { background: var(--green-bg); color: var(--green-text); }
-  .strip-icon.blue  { background: var(--blue-bg);  color: var(--blue-text); }
-  .strip-icon.amber { background: var(--amber-bg); color: var(--amber-text); }
-  .strip-icon.red   { background: var(--red-bg);   color: var(--red-text); }
-
-  .strip-val  { font-size: 18px; font-weight: 500; color: var(--text-primary); line-height: 1; }
-  .strip-lbl  { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-
-  /* ── GRID VIEW ── */
+  /* ── GRID ── */
   .prop-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -147,119 +93,90 @@
     border-radius: var(--radius-lg);
     overflow: hidden;
     transition: box-shadow 0.2s, transform 0.2s;
-    cursor: pointer;
   }
+  .prop-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
 
-  .prop-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    transform: translateY(-2px);
-  }
-
-  .prop-thumb {
+  /* IMAGE WRAPPER — this is the fix */
+  .prop-img-wrap {
+    position: relative;
     width: 100%;
     height: 160px;
-    object-fit: cover;
-    display: block;
-    background: var(--bg-secondary);
-    position: relative;
-  }
-
-  .prop-thumb-img {
-    width: 100%; height: 160px;
-    object-fit: cover;
-    display: block;
-  }
-
-  .prop-thumb-placeholder {
-    width: 100%; height: 160px;
+    overflow: hidden;
     background: var(--bg-secondary);
     display: flex; align-items: center; justify-content: center;
   }
-
-  .prop-thumb-placeholder svg { width: 32px; height: 32px; color: var(--text-tertiary); opacity: 0.4; }
+  .prop-img-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .prop-img-wrap .prop-ph {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .prop-img-wrap .prop-ph svg { width: 36px; height: 36px; color: var(--text-tertiary); opacity: .25; }
 
   .prop-status-badge {
     position: absolute;
     top: 10px; left: 10px;
     font-size: 10px; font-weight: 500;
-    padding: 3px 8px;
+    padding: 3px 9px;
     border-radius: 20px;
     backdrop-filter: blur(8px);
+    z-index: 2;
+  }
+  .prop-status-badge.available    { background: rgba(234,243,222,0.92); color: #3B6D11; }
+  .prop-status-badge.occupied     { background: rgba(230,241,251,0.92); color: #185FA5; }
+  .prop-status-badge.maintenance  { background: rgba(250,238,218,0.92); color: #854F0B; }
+
+  /* unconfirmed overlay */
+  .prop-unconfirmed-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    font-size: 10px; font-weight: 600;
+    background: rgba(0,0,0,0.75); color: #fff;
+    padding: 3px 8px; border-radius: 20px;
+    backdrop-filter: blur(4px);
+    z-index: 2;
   }
 
-  .prop-status-badge.available { background: rgba(234,243,222,0.9); color: #3B6D11; }
-  .prop-status-badge.occupied  { background: rgba(230,241,251,0.9); color: #185FA5; }
-  .prop-status-badge.maintenance { background: rgba(250,238,218,0.9); color: #854F0B; }
-
   .prop-body { padding: 14px 16px 16px; }
-
   .prop-type {
     font-size: 10px; font-weight: 500;
     color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: .6px;
+    margin-bottom: 3px;
   }
-
   .prop-name {
-    font-size: 14px; font-weight: 500;
-    color: var(--text-primary);
+    font-size: 14px; font-weight: 500; color: var(--text-primary);
     margin-bottom: 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-
-  .prop-addr {
-    font-size: 11px; color: var(--text-secondary);
-    display: flex; align-items: center; gap: 4px;
-    margin-bottom: 12px;
-  }
-
-  .prop-addr svg { width: 11px; height: 11px; flex-shrink: 0; }
+  .prop-addr { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; }
 
   .prop-meta {
-    display: flex;
-    gap: 0;
-    border-top: 0.5px solid var(--border-light);
-    padding-top: 12px;
+    display: flex; border-top: 0.5px solid var(--border-light); padding-top: 12px; margin-bottom: 12px;
   }
-
-  .prop-meta-item {
-    flex: 1;
-    text-align: center;
-  }
-
-  .prop-meta-item + .prop-meta-item {
-    border-left: 0.5px solid var(--border-light);
-  }
-
+  .prop-meta-item { flex: 1; text-align: center; }
+  .prop-meta-item + .prop-meta-item { border-left: 0.5px solid var(--border-light); }
   .prop-meta-val { font-size: 13px; font-weight: 500; color: var(--text-primary); }
   .prop-meta-lbl { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
 
-  .prop-actions {
-    display: flex;
-    gap: 6px;
-    margin-top: 12px;
-  }
-
+  .prop-actions { display: flex; gap: 6px; }
   .prop-btn {
-    flex: 1;
-    padding: 7px;
+    flex: 1; padding: 7px;
     border-radius: var(--radius-sm);
     font-size: 11px; font-weight: 500;
     font-family: 'DM Sans', sans-serif;
     border: 0.5px solid var(--border-medium);
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    text-decoration: none;
-    text-align: center;
+    background: var(--bg-secondary); color: var(--text-secondary);
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+    text-decoration: none; text-align: center;
     display: flex; align-items: center; justify-content: center; gap: 5px;
   }
-
   .prop-btn:hover { background: var(--bg-page); color: var(--text-primary); }
   .prop-btn.primary { background: var(--text-primary); color: var(--bg-card); border-color: var(--text-primary); }
-  .prop-btn.primary:hover { opacity: 0.85; }
+  .prop-btn.primary:hover { opacity: .85; }
   .prop-btn svg { width: 12px; height: 12px; }
 
   /* ── TABLE VIEW ── */
@@ -270,415 +187,238 @@
     overflow: hidden;
     display: none;
   }
-
-  .prop-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
+  .prop-table { width: 100%; border-collapse: collapse; }
   .prop-table thead th {
-    font-size: 10px; font-weight: 600;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    padding: 12px 16px;
-    text-align: left;
+    font-size: 10px; font-weight: 600; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: .6px;
+    padding: 12px 16px; text-align: left;
     border-bottom: 0.5px solid var(--border-light);
     background: var(--bg-secondary);
   }
-
   .prop-table tbody td {
-    padding: 13px 16px;
-    font-size: 12px;
-    color: var(--text-primary);
-    border-bottom: 0.5px solid var(--border-light);
-    vertical-align: middle;
+    padding: 12px 16px; font-size: 12px; color: var(--text-primary);
+    border-bottom: 0.5px solid var(--border-light); vertical-align: middle;
   }
-
   .prop-table tbody tr:last-child td { border-bottom: none; }
-
   .prop-table tbody tr:hover td { background: var(--bg-secondary); }
-
   .prop-table td.muted { color: var(--text-secondary); }
 
-  .prop-thumb-mini {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    object-fit: cover;
+  .tbl-thumb {
+    width: 36px; height: 36px; border-radius: 8px;
+    overflow: hidden; background: var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .tbl-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tbl-thumb svg { width: 16px; height: 16px; color: var(--text-tertiary); opacity: .4; }
+  .tbl-name-cell { display: flex; align-items: center; gap: 10px; }
+  .tbl-name-txt  { font-weight: 500; font-size: 12px; }
+  .tbl-addr-txt  { font-size: 11px; color: var(--text-secondary); }
+
+  /* View toggle */
+  .view-toggle {
+    display: flex; gap: 2px;
     background: var(--bg-secondary);
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius-sm); padding: 2px;
   }
-
-  .prop-thumb-mini img { width: 100%; height: 100%; object-fit: cover; }
-  .prop-thumb-mini svg { width: 16px; height: 16px; color: var(--text-tertiary); opacity: 0.4; }
-
-  .prop-name-cell { display: flex; align-items: center; gap: 10px; }
-  .prop-name-text { font-weight: 500; }
-  .prop-addr-text { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
-
-  /* Pagination */
-  .pagination-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 0 0;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .pagination-info { font-size: 11px; color: var(--text-secondary); }
-
-  .pagination-btns { display: flex; gap: 4px; }
-
-  .page-btn {
+  .view-btn {
     width: 30px; height: 30px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 6px;
-    font-size: 12px; font-weight: 500;
-    border: 0.5px solid var(--border-medium);
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background 0.15s;
+    border-radius: 5px; cursor: pointer;
+    color: var(--text-tertiary);
+    transition: background .15s, color .15s;
+    border: none; background: transparent;
   }
+  .view-btn.active { background: var(--bg-card); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .view-btn svg { width: 14px; height: 14px; }
 
-  .page-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
-  .page-btn.active { background: var(--text-primary); color: var(--bg-card); border-color: var(--text-primary); }
-
-  /* Empty state */
   .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-secondary);
+    text-align: center; padding: 60px 20px;
+    color: var(--text-secondary); grid-column: 1/-1;
   }
-
-  .empty-state svg { width: 48px; height: 48px; opacity: 0.2; margin-bottom: 16px; }
+  .empty-state svg { width: 48px; height: 48px; opacity: .2; margin-bottom: 16px; display: block; margin-inline: auto; }
   .empty-state h3 { font-size: 15px; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
-  .empty-state p { font-size: 13px; }
 
-  @media (max-width: 1100px) { .prop-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 700px) {
-    .prop-grid { grid-template-columns: 1fr; }
-    .stats-strip { grid-template-columns: repeat(2, 1fr); }
-  }
-
-
-
-  /* Ensure the body can actually scroll */
-html, body {
-  height: auto;
-  min-height: 100%;
-  overflow-x: hidden; /* Prevent horizontal shake */
-  overflow-y: auto;   /* Enable vertical scroll */
-}
-
-/* Your main layout wrapper (the one holding sidebar + content) */
-.main-wrapper {
-  display: flex;
-  min-height: 100vh;
-}
-
-/* THE FIX: Make sure the content area can grow and scroll */
-.main-content {
-  flex: 1;
-  overflow-y: visible; /* Crucial: Let the page grow with content */
-  padding: 20px;
-  background: var(--bg-main);
-}
-
-/* Ensure the table/grid container doesn't block scrolling */
-.prop-table-wrap, .grid-view-container {
-  overflow-x: auto; /* Allow horizontal scroll for tables on small screens */
-  width: 100%;
-}
-
-
-
-/* Container for Search */
-.inventory-controls {
-  margin-bottom: 40px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.search-wrapper {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.search-input-group {
-  position: relative;
-  flex-grow: 1;
-  max-width: 500px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  color: #94a3b8;
-}
-
-.f-input-search {
-  width: 100%;
-  padding: 12px 12px 12px 45px;
-  border: 2px solid #000;
-  border-radius: 0; /* Sharp edges */
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.f-input-search:focus {
-  outline: none;
-  background-color: #f8fafc;
-  box-shadow: 4px 4px 0px #000;
-}
-
-/* Portfolio Grid */
-.portfolio-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.stat-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  padding: 25px;
-  position: relative;
-  transition: transform 0.2s ease;
-}
-
-.stat-card.featured {
-  border: 2px solid #000;
-  background: #fff;
-}
-
-.stat-label {
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 2px;
-  font-weight: 700;
-  color: #64748b;
-  margin-bottom: 10px;
-}
-
-.stat-value {
-  font-size: 32px;
-  font-weight: 900;
-  color: #000;
-  font-family: 'Inter', sans-serif;
-}
-
-.stat-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 6px;
-  height: 100%;
-  background: #000;
-}
-
-/* Buttons */
-.btn-estate-black {
-  background: #000;
-  color: #fff;
-  border: none;
-  padding: 12px 25px;
-  text-transform: uppercase;
-  font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.btn-estate-black:hover {
-  background: #333;
-  transform: translateY(-2px);
-}
-
-.btn-clear {
-  font-size: 12px;
-  color: #64748b;
-  text-decoration: none;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.btn-clear:hover {
-  color: #000;
-}
+  @media (max-width: 1100px) { .prop-grid { grid-template-columns: repeat(2,1fr); } .portfolio-grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 700px)  { .prop-grid { grid-template-columns: 1fr; } .portfolio-grid { grid-template-columns: 1fr; } }
 </style>
+
 <!-- Header -->
 <div class="prop-header">
   <div>
     <div class="page-title">Properties</div>
     <div class="page-sub">Manage your entire portfolio in one place</div>
   </div>
-
-  {% if user.role != 'tenant' %}
-  <a href="{% url 'property_create' %}" class="btn-estate primary">
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M8 2v12M2 8h12"/>
-    </svg>
-    Add Property
-  </a>
-  {% endif %}
+  <div style="display:flex;gap:8px;align-items:center;">
+    <!-- View toggle -->
+    <div class="view-toggle">
+      <button class="view-btn active" id="gridBtn" title="Grid view">
+        <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      </button>
+      <button class="view-btn" id="listBtn" title="List view">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+      </button>
+    </div>
+    {% if user.role != 'tenant' %}
+    <a href="{% url 'property_create' %}" class="btn-estate primary">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v12M2 8h12"/></svg>
+      Add Property
+    </a>
+    {% endif %}
+  </div>
 </div>
 
-
-<!-- Search & Filter Header -->
+<!-- Search -->
 <div class="inventory-controls">
   <form method="GET" class="search-wrapper">
-      <div class="search-input-group">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" name="search" placeholder="Search properties by title or address..."
-                 class="f-input-search" value="{{ request.GET.search }}">
-      </div>
-      <button type="submit" class="btn-estate-black">Search</button>
-
-      {% if request.GET.search %}
-          <a href="{% url 'property_list' %}" class="btn-clear">Clear</a>
-      {% endif %}
+    <div class="search-input-group">
+      <svg class="search-icon-abs" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="7" cy="7" r="5"/><path d="M12 12l2.5 2.5"/>
+      </svg>
+      <input type="text" name="search" placeholder="Search by title or address…"
+             class="f-input-search" value="{{ request.GET.search }}">
+    </div>
+    <button type="submit" class="btn-estate primary">Search</button>
+    {% if request.GET.search %}
+      <a href="{% url 'property_list' %}" class="btn-clear">Clear ×</a>
+    {% endif %}
   </form>
 </div>
 
-
 <!-- Stats -->
 <div class="portfolio-grid">
-  <div class="stat-card featured">
-      <div class="stat-label">Total Portfolio Value</div>
-      <div class="stat-value">${{ total_value|floatformat:2 }}</div>
+  <div class="p-stat featured">
+    <div class="p-stat-lbl">Total Portfolio Value</div>
+    <div class="p-stat-val">${{ total_value|floatformat:0 }}</div>
   </div>
-
-  <div class="stat-card">
-      <div class="stat-label">Active Listings</div>
-      <div class="stat-value">{{ properties.count }}</div>
+  <div class="p-stat">
+    <div class="p-stat-lbl">Total Listings</div>
+    <div class="p-stat-val">{{ properties|length }}</div>
   </div>
-
-  <div class="stat-card">
-      <div class="stat-label">Avg. Market Yield</div>
-      <div class="stat-value">6.4%</div>
+  <div class="p-stat">
+    <div class="p-stat-lbl">Available Now</div>
+    <div class="p-stat-val">{{ properties|dictsort:"status"|length }}</div>
   </div>
 </div>
 
-
-<!-- LANDLORD NOTIFICATIONS -->
+<!-- Landlord pending confirmations -->
 {% if user.role == 'landlord' %}
-<div class="notification-area" style="margin-bottom: 25px;">
+  <div style="margin-bottom:20px;">
     {% for prop in properties %}
-        {% if not prop.is_confirmed %}
-            <div style="background:#fff;border:2px solid #000;padding:20px;display:flex;justify-content:space-between;">
-                <div>
-                    <span style="background:#000;color:#fff;padding:2px 8px;font-size:10px;">
-                        Pending Approval
-                    </span>
-                    <h4 style="margin:10px 0 5px 0;">{{ prop.title }}</h4>
-                    <p style="margin:0;font-size:13px;color:#666;">
-                        Added by Agent: <strong>{{ prop.agent.username|default:"System" }}</strong>
-                    </p>
-                </div>
-
-                <form action="{% url 'confirm_property' prop.id %}" method="POST">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-estate primary"
-                            style="background:#22c55e;border-color:#22c55e;">
-                        Confirm Listing
-                    </button>
-                </form>
-            </div>
-        {% endif %}
+      {% if not prop.is_confirmed %}
+        <div class="pending-banner">
+          <div>
+            <span class="pending-tag">Pending Approval</span>
+            <div class="pending-title">{{ prop.title }}</div>
+            <div class="pending-sub">Added by agent: {{ prop.agent.username|default:"—" }}</div>
+          </div>
+          <form action="{% url 'confirm_property' prop.id %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn-estate primary" style="background:#22c55e;border-color:#22c55e;">
+              Confirm Listing
+            </button>
+          </form>
+        </div>
+      {% endif %}
     {% endfor %}
-</div>
+  </div>
 {% endif %}
 
-
-<!-- GRID VIEW -->
+<!-- ═══════════════════════════════════════ GRID VIEW ═══ -->
 <div class="prop-grid" id="gridView">
-
   {% for property in properties %}
   <div class="prop-card"
        data-name="{{ property.title|lower }}"
        data-type="{{ property.property_type }}"
        data-status="{{ property.status }}">
 
-    <div style="position:relative;">
+    <!-- IMAGE — the whole fix is here -->
+    <div class="prop-img-wrap">
       {% if property.image %}
-        <img src="{{ property.image.url }}" class="prop-thumb-img" />
+        <img src="{{ property.image.url }}"
+             alt="{{ property.title }}"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="prop-ph" style="display:none;">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
+        </div>
       {% else %}
-        <div class="prop-thumb-placeholder"></div>
+        <div class="prop-ph">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
+        </div>
       {% endif %}
 
-      <span class="prop-status-badge {{ property.status }}">
-        {{ property.get_status_display }}
-      </span>
+      <span class="prop-status-badge {{ property.status }}">{{ property.get_status_display }}</span>
+
+      {% if not property.is_confirmed %}
+        <span class="prop-unconfirmed-badge">Unconfirmed</span>
+      {% endif %}
     </div>
 
     <div class="prop-body">
       <div class="prop-type">{{ property.get_property_type_display }}</div>
       <div class="prop-name">{{ property.title }}</div>
-
-      <div class="prop-addr">
-        {{ property.address }}
-      </div>
+      <div class="prop-addr">{{ property.address|truncatechars:50 }}</div>
 
       <div class="prop-meta">
-        <div>{{ property.units_count|default:"—" }} Units</div>
-        <div>${{ property.monthly_rent|default:"—" }}/mo</div>
-        <div>{{ property.size|default:"—" }} m²</div>
+        <div class="prop-meta-item">
+          <div class="prop-meta-val">{{ property.units_count|default:"—" }}</div>
+          <div class="prop-meta-lbl">Units</div>
+        </div>
+        <div class="prop-meta-item">
+          <div class="prop-meta-val">${{ property.monthly_rent|default:"—" }}</div>
+          <div class="prop-meta-lbl">/ month</div>
+        </div>
+        <div class="prop-meta-item">
+          <div class="prop-meta-val">{{ property.size|default:"—" }}</div>
+          <div class="prop-meta-lbl">m²</div>
+        </div>
       </div>
 
-
       <div class="prop-actions">
-
-        <!-- VIEW (everyone except tenant optional if you want) -->
         <a href="{% url 'property_detail' property.pk %}" class="prop-btn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M1 8C2.5 4 5 2 8 2s5.5 2 7 6c-1.5 4-4 6-7 6s-5.5-2-7-6z"/></svg>
           View
         </a>
 
-        {% if user.role == 'tenant' and property.status == 'available' %}
-  <form method="POST" action="{% url 'rentals:request_rent' property.id %}">
-    {% csrf_token %}
-
-    <input type="hidden" name="message" value="I want to rent this property">
-
-    <button type="submit" class="prop-btn primary">
-      Request Rent
-    </button>
-     </form>
-      {% endif %}
-
-
-        <!-- EDIT ONLY OWNER + NOT TENANT -->
-        {% if user.role != 'tenant' and property.agent == user %}
-        <a href="{% url 'property_edit' property.pk %}" class="prop-btn primary">
-          Edit
-        </a>
+        {# Landlord can edit their own properties #}
+        {% if user.role == 'landlord' and property.owner == user %}
+          <a href="{% url 'property_edit' property.pk %}" class="prop-btn primary">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+            Edit
+          </a>
         {% endif %}
 
+        {# Agent can edit properties they manage #}
+        {% if user.role == 'agent' and property.agent == user %}
+          <a href="{% url 'property_edit' property.pk %}" class="prop-btn primary">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-8 8H3v-3l8-8z"/></svg>
+            Edit
+          </a>
+        {% endif %}
+
+        {# Tenant can request rent on available confirmed properties #}
+        {% if user.role == 'tenant' and property.status == 'available' %}
+          <form method="POST" action="{% url 'rentals:request_rent' property.id %}" style="flex:1;">
+            {% csrf_token %}
+            <input type="hidden" name="message" value="I want to rent this property">
+            <button type="submit" class="prop-btn primary" style="width:100%;">
+              Request Rent
+            </button>
+          </form>
+        {% endif %}
       </div>
     </div>
   </div>
   {% empty %}
-  <div class="empty-state" style="grid-column:1/-1;">
+  <div class="empty-state">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
     <h3>No properties yet</h3>
+    <p>{% if user.role != 'tenant' %}Add your first property to get started.{% else %}No available properties at the moment.{% endif %}</p>
   </div>
   {% endfor %}
 </div>
 
-
-<!-- TABLE VIEW -->
+<!-- ═══════════════════════════════════════ TABLE VIEW ═══ -->
 <div class="prop-table-wrap" id="listView">
   <table class="prop-table">
     <thead>
@@ -692,32 +432,57 @@ html, body {
         <th></th>
       </tr>
     </thead>
-
     <tbody>
       {% for property in properties %}
-      <tr>
-
-        <td>{{ property.title }}</td>
-        <td>{{ property.get_property_type_display }}</td>
-        <td>{{ property.units_count|default:"—" }}</td>
-        <td>${{ property.monthly_rent|default:"—" }}</td>
-        <td>{{ property.size|default:"—" }} m²</td>
-        <td>{{ property.get_status_display }}</td>
+      <tr data-name="{{ property.title|lower }}"
+          data-type="{{ property.property_type }}"
+          data-status="{{ property.status }}">
 
         <td>
+          <div class="tbl-name-cell">
+            <div class="tbl-thumb">
+              {% if property.image %}
+                <img src="{{ property.image.url }}"
+                     alt="{{ property.title }}"
+                     onerror="this.style.display='none';">
+              {% else %}
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
+              {% endif %}
+            </div>
+            <div>
+              <div class="tbl-name-txt">{{ property.title }}</div>
+              <div class="tbl-addr-txt">{{ property.address|truncatechars:30 }}</div>
+            </div>
+          </div>
+        </td>
+        <td class="muted">{{ property.get_property_type_display }}</td>
+        <td>{{ property.units_count|default:"—" }}</td>
+        <td>${{ property.monthly_rent|default:"—" }}</td>
+        <td class="muted">{{ property.size|default:"—" }} m²</td>
+        <td><span class="pill {% if property.status == 'available' %}open{% elif property.status == 'occupied' %}done{% else %}pending{% endif %}">{{ property.get_status_display }}</span></td>
+        <td>
+          <div style="display:flex;gap:6px;justify-content:flex-end;">
+            <a href="{% url 'property_detail' property.pk %}" class="prop-btn" style="flex:unset;padding:5px 10px;">View</a>
 
-          <!-- STATUS CHANGE ONLY OWNER + NOT TENANT -->
-          {% if user.role != 'tenant' and property.agent == user %}
-          <form action="{% url 'change_status' property.pk %}" method="post">
-            {% csrf_token %}
-            <select name="status" onchange="this.form.submit()">
-              <option value="available" {% if property.status == 'available' %}selected{% endif %}>Available</option>
-              <option value="occupied" {% if property.status == 'occupied' %}selected{% endif %}>Occupied</option>
-              <option value="maintenance" {% if property.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
-            </select>
-          </form>
-          {% endif %}
+            {% if user.role == 'landlord' and property.owner == user %}
+              <a href="{% url 'property_edit' property.pk %}" class="prop-btn primary" style="flex:unset;padding:5px 10px;">Edit</a>
+            {% endif %}
+            {% if user.role == 'agent' and property.agent == user %}
+              <a href="{% url 'property_edit' property.pk %}" class="prop-btn primary" style="flex:unset;padding:5px 10px;">Edit</a>
+            {% endif %}
 
+            {% if user.role != 'tenant' %}
+            <form action="{% url 'change_status' property.pk %}" method="post" style="display:inline;">
+              {% csrf_token %}
+              <select name="status" onchange="this.form.submit()"
+                      style="padding:5px 8px;border:0.5px solid var(--border-medium);border-radius:var(--radius-sm);font-size:11px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;">
+                <option value="available"   {% if property.status == 'available'   %}selected{% endif %}>Available</option>
+                <option value="occupied"    {% if property.status == 'occupied'    %}selected{% endif %}>Occupied</option>
+                <option value="maintenance" {% if property.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+              </select>
+            </form>
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% endfor %}
@@ -726,56 +491,29 @@ html, body {
 </div>
 
 <script>
-  // Grid / List toggle
+  // ── View toggle ──
   const gridBtn  = document.getElementById('gridBtn');
   const listBtn  = document.getElementById('listBtn');
   const gridView = document.getElementById('gridView');
   const listView = document.getElementById('listView');
 
-  gridBtn.addEventListener('click', () => {
+  function showGrid() {
     gridView.style.display = 'grid';
     listView.style.display = 'none';
     gridBtn.classList.add('active');
     listBtn.classList.remove('active');
     localStorage.setItem('prop-view', 'grid');
-  });
-
-  listBtn.addEventListener('click', () => {
+  }
+  function showList() {
     gridView.style.display = 'none';
     listView.style.display = 'block';
     listBtn.classList.add('active');
     gridBtn.classList.remove('active');
     localStorage.setItem('prop-view', 'list');
-  });
-
-  // Restore saved view
-  if (localStorage.getItem('prop-view') === 'list') listBtn.click();
-
-  // Live search + filter
-  function filterCards() {
-    const q      = document.getElementById('searchInput').value.toLowerCase();
-    const type   = document.getElementById('typeFilter').value;
-    const status = document.getElementById('statusFilter').value;
-
-    // Grid cards
-    document.querySelectorAll('#gridView .prop-card').forEach(card => {
-      const nameMatch   = card.dataset.name.includes(q);
-      const typeMatch   = !type   || card.dataset.type   === type;
-      const statusMatch = !status || card.dataset.status === status;
-      card.style.display = (nameMatch && typeMatch && statusMatch) ? '' : 'none';
-    });
-
-    // Table rows
-    document.querySelectorAll('#listView tbody tr[data-name]').forEach(row => {
-      const nameMatch   = row.dataset.name.includes(q);
-      const typeMatch   = !type   || row.dataset.type   === type;
-      const statusMatch = !status || row.dataset.status === status;
-      row.style.display = (nameMatch && typeMatch && statusMatch) ? '' : 'none';
-    });
   }
 
-  document.getElementById('searchInput').addEventListener('input', filterCards);
-  document.getElementById('typeFilter').addEventListener('change', filterCards);
-  document.getElementById('statusFilter').addEventListener('change', filterCards);
+  gridBtn.addEventListener('click', showGrid);
+  listBtn.addEventListener('click', showList);
+  if (localStorage.getItem('prop-view') === 'list') showList();
 </script>
 {% endblock %}

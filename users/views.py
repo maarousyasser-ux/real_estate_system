@@ -312,7 +312,7 @@ def community_view(request):
 def maintenance_dashboard(request):
     user = request.user
     if user.role == "tenant":
-        # MaintenanceRequest.tenant is a direct User FK
+     
         qs = MaintenanceRequest.objects.filter(tenant=user)
     elif user.role == "landlord":
         qs = MaintenanceRequest.objects.filter(contract__landlord=user)
