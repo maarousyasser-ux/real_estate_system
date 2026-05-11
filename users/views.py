@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model, login, update_session_auth_hash
+from django.contrib import messages
 from django.db.models import Sum, Case, When, IntegerField
 from datetime import date
 from calendar import month_abbr
 
-from .forms import CustomUserCreationForm
+from .forms import CustomUserCreationForm, ProfileForm, PasswordChangeForm
 from maintenance.models import MaintenanceRequest
 from notifications.models import Notification
 
@@ -50,18 +51,8 @@ def dashboard_view(request):
     from contracts.models import Contract
     from payments.models import Payment
     from properties.models import Property
-    from tenants.models import Tenant  # Tenant profile model
+    from tenants.models import Tenant
 
-    # Contract.tenant  → Tenant model (profile, has .user FK to User)
-    # Contract.landlord → User directly
-    # Contract.agent    → User directly
-    # Property.owner    → User directly
-    # Property.agent    → User directly
-    # MaintenanceRequest.tenant → User directly
-
-    # -------------------------------------------------------------------------
-    # LANDLORD
-    # -------------------------------------------------------------------------
     if user.role == "landlord":
         properties   = Property.objects.filter(owner=user)
         contracts    = Contract.objects.filter(landlord=user, status="active")
@@ -109,9 +100,6 @@ def dashboard_view(request):
             "requests":            requests,
         })
 
-    # -------------------------------------------------------------------------
-    # AGENT
-    # -------------------------------------------------------------------------
     elif user.role == "agent":
         listings        = Property.objects.filter(agent=user)
         agent_contracts = Contract.objects.filter(agent=user)
@@ -172,12 +160,7 @@ def dashboard_view(request):
             "recent_contracts":   recent_contracts,
         })
 
-    # -------------------------------------------------------------------------
-    # TENANT
-    # -------------------------------------------------------------------------
     elif user.role == "tenant":
-        # Contract.tenant is a FK to the Tenant model (not User directly).
-        # The Tenant model has a `user` OneToOne/FK back to User.
         tenant_profile = Tenant.objects.filter(user=user).first()
 
         tenant_contract = None
@@ -197,7 +180,6 @@ def dashboard_view(request):
                 .first()
             )
 
-        # Attach computed lease progress
         if tenant_contract:
             today = date.today()
             start, end = tenant_contract.start_date, tenant_contract.end_date
@@ -211,7 +193,6 @@ def dashboard_view(request):
             tenant_contract.lease_progress_pct = lease_pct
             tenant_contract.days_remaining      = days_remaining
 
-        # Days until next rent payment
         days_until_rent = None
         if tenant_contract and tenant_contract.status == "active":
             nxt = (
@@ -225,7 +206,6 @@ def dashboard_view(request):
             if nxt:
                 days_until_rent = (nxt.due_date - date.today()).days
 
-        # Payments — filter via Tenant profile through contract
         if tenant_profile:
             recent_payments = (
                 Payment.objects.filter(contract__tenant=tenant_profile)
@@ -238,7 +218,6 @@ def dashboard_view(request):
             recent_payments = Payment.objects.none()
             payments_made   = 0
 
-        # Maintenance — MaintenanceRequest.tenant is direct FK to User
         my_requests = (
             MaintenanceRequest.objects.filter(tenant=user)
             .order_by("-created_at")[:5]
@@ -283,20 +262,175 @@ def register_view(request):
 
 
 # ---------------------------------------------------------------------------
-# Other views
+# Profile view  — handles all tab POST actions via hidden `tab` field
 # ---------------------------------------------------------------------------
 
 @login_required
 def profile_view(request):
-    if request.method == "POST":
-        u = request.user
-        u.first_name = request.POST.get("first_name", u.first_name)
-        u.last_name  = request.POST.get("last_name",  u.last_name)
-        u.email      = request.POST.get("email",      u.email)
-        u.save()
-        return redirect("profile")
-    return render(request, "users/profile.html")
+    user = request.user
+    form = ProfileForm(instance=user)
 
+    if request.method == "POST":
+        tab = request.POST.get("tab", "personal")
+
+        # ── Personal info ──────────────────────────────────────────────────
+        if tab == "personal":
+            form = ProfileForm(request.POST, instance=user)
+            if form.is_valid():
+                u = form.save(commit=False)
+                u.first_name = request.POST.get("first_name", u.first_name).strip()
+                u.last_name  = request.POST.get("last_name",  u.last_name).strip()
+                role = request.POST.get("role")
+                if role in ("landlord", "agent", "tenant"):
+                    u.role = role
+                u.save()
+                messages.success(request, "Profile updated successfully.")
+            else:
+                messages.error(request, "Please correct the errors below.")
+            return redirect("profile")
+
+        # ── Security / password ────────────────────────────────────────────
+        elif tab == "security":
+            pw_form = PasswordChangeForm(user=user, data=request.POST)
+            if pw_form.is_valid():
+                pw_form.save()
+                # Keep the user logged in after password change
+                update_session_auth_hash(request, user)
+                messages.success(request, "Password updated successfully.")
+            else:
+                for field, errors in pw_form.errors.items():
+                    for err in errors:
+                        messages.error(request, f"{field}: {err}")
+            return redirect("profile")
+
+        # ── Session revocation (placeholder — implement with your session model) ──
+        elif tab in ("revoke_session", "revoke_all"):
+            # TODO: flush specific or all non-current sessions
+            messages.success(request, "Session(s) revoked.")
+            return redirect("profile")
+
+        # ── Notification preferences ───────────────────────────────────────
+        elif tab == "notifications":
+            prefs = {
+                "email_payment":     "notif_email_payment"     in request.POST,
+                "email_maintenance": "notif_email_maintenance"  in request.POST,
+                "email_lease_expiry":"notif_email_lease_expiry" in request.POST,
+                "email_overdue":     "notif_email_overdue"      in request.POST,
+                "email_messages":    "notif_email_messages"     in request.POST,
+                "push_urgent":       "notif_push_urgent"        in request.POST,
+                "push_digest":       "notif_push_digest"        in request.POST,
+                "push_updates":      "notif_push_updates"       in request.POST,
+                "quiet_from":        request.POST.get("quiet_from", "22:00"),
+                "quiet_until":       request.POST.get("quiet_until", "08:00"),
+            }
+            # Persist to user.notification_settings JSON field (or a separate model)
+            if hasattr(user, "notification_settings"):
+                user.notification_settings = prefs
+                user.save(update_fields=["notification_settings"])
+            messages.success(request, "Notification preferences saved.")
+            return redirect("profile")
+
+        # ── Avatar upload ──────────────────────────────────────────────────
+        elif tab == "avatar":
+            avatar_file = request.FILES.get("avatar")
+            if avatar_file:
+                if hasattr(user, "avatar"):
+                    user.avatar.save(avatar_file.name, avatar_file, save=True)
+                    messages.success(request, "Profile photo updated.")
+                else:
+                    messages.error(request, "Avatar uploads are not configured.")
+            return redirect("profile")
+
+    # ── GET ────────────────────────────────────────────────────────────────
+    # Build role-aware stats for sidebar
+    stats = _build_profile_stats(user)
+
+    # Activity log — adapt to your own audit/log model
+    activity_log = _build_activity_log(user)
+
+    # Notification settings
+    notif_settings = getattr(user, "notification_settings", {}) or {}
+
+    context = {
+        "form":            form,
+        "stats":           stats,
+        "activity_log":    activity_log,
+        "notif_settings":  notif_settings,
+    }
+    return render(request, "users/profile.html", context)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _build_profile_stats(user):
+    """Return sidebar stat counts keyed by role."""
+    stats = {}
+    try:
+        if user.role == "landlord":
+            from properties.models import Property
+            from tenants.models import Tenant
+            from contracts.models import Contract
+            stats["properties_count"] = Property.objects.filter(owner=user).count()
+            stats["tenants_count"]    = Contract.objects.filter(
+                landlord=user, status="active"
+            ).count()
+
+        elif user.role == "agent":
+            from properties.models import Property
+            from contracts.models import Contract
+            stats["listings_count"] = Property.objects.filter(agent=user).count()
+            stats["clients_count"]  = Contract.objects.filter(
+                agent=user, status="active"
+            ).values("tenant").distinct().count()
+
+        elif user.role == "tenant":
+            from payments.models import Payment
+            from tenants.models import Tenant
+            tenant_profile = Tenant.objects.filter(user=user).first()
+            if tenant_profile:
+                stats["payments_count"] = Payment.objects.filter(
+                    contract__tenant=tenant_profile, status="paid"
+                ).count()
+            else:
+                stats["payments_count"] = 0
+            stats["requests_count"] = MaintenanceRequest.objects.filter(tenant=user).count()
+    except Exception:
+        pass
+    return stats
+
+
+def _build_activity_log(user):
+    """
+    Build a list of activity dicts from your audit model.
+    Each dict: { title, timestamp, category, device }
+    Categories: 'login' | 'edit' | 'security' | 'danger'
+
+    Replace the body below with a real query against your audit/log model,
+    e.g. AuditLog.objects.filter(user=user).order_by('-timestamp')[:20]
+    """
+    # Placeholder — swap for real queryset:
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Delete account
+# ---------------------------------------------------------------------------
+
+@login_required
+def delete_account_view(request):
+    if request.method == "POST":
+        user = request.user
+        user.delete()
+        messages.success(request, "Your account has been deleted.")
+        return redirect("register")
+    return redirect("profile")
+
+
+# ---------------------------------------------------------------------------
+# Other views
+# ---------------------------------------------------------------------------
 
 @login_required
 def messages_view(request):
@@ -312,7 +446,6 @@ def community_view(request):
 def maintenance_dashboard(request):
     user = request.user
     if user.role == "tenant":
-     
         qs = MaintenanceRequest.objects.filter(tenant=user)
     elif user.role == "landlord":
         qs = MaintenanceRequest.objects.filter(contract__landlord=user)

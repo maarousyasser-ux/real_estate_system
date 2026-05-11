@@ -18,6 +18,8 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('password-change/', auth_views.PasswordChangeView.as_view(template_name='users/password_change.html'), name='password_change'),
    path('messages/', views.messages_view, name='messages'),
+   path('delete-account/', views.delete_account_view, name='delete_account'),
+   
 
 
 

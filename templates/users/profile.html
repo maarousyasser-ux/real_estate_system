@@ -1,386 +1,199 @@
 {% extends "base.html" %}
 {% block title %}Profile — Estāte{% endblock %}
 {% block nav_profile %}active{% endblock %}
+{% load custom_filters %}
 
 {% block content %}
 <style>
-  .profile-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
   /* ── LAYOUT ── */
-  .profile-layout {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 16px;
-    align-items: start;
+  .profile-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+  .profile-layout { display:grid; grid-template-columns:252px 1fr; gap:16px; align-items:start; }
+
+  /* ── SIDEBAR CARD ── */
+  .profile-id-card { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); overflow:hidden; position:sticky; top:24px; }
+  .profile-cover { height:76px; background:var(--role-color); position:relative; overflow:hidden; }
+  .profile-cover::before { content:''; position:absolute; top:-18px; right:-18px; width:90px; height:90px; border-radius:50%; background:rgba(255,255,255,0.08); }
+  .profile-cover::after  { content:''; position:absolute; bottom:-28px; left:16px; width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,0.05); }
+
+  .profile-avatar-wrap { display:flex; flex-direction:column; align-items:center; padding:0 18px 18px; margin-top:-26px; position:relative; }
+  .profile-avatar { width:52px; height:52px; border-radius:50%; border:3px solid var(--bg-card); background:var(--role-color); display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:20px; color:#fff; cursor:pointer; position:relative; flex-shrink:0; box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+  .avatar-edit-overlay { position:absolute; inset:0; border-radius:50%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .2s; }
+  .profile-avatar:hover .avatar-edit-overlay { opacity:1; }
+  .avatar-edit-overlay svg { width:15px; height:15px; color:#fff; }
+
+  .profile-name { font-family:'DM Serif Display',serif; font-size:16px; color:var(--text-primary); margin-top:9px; text-align:center; }
+  .profile-username { font-size:11.5px; color:var(--text-secondary); margin-top:2px; text-align:center; }
+
+  .profile-role-pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:600; background:var(--role-badge-bg,#1A1A1A); color:var(--role-badge-text,#fff); margin-top:9px; text-transform:capitalize; letter-spacing:.4px; }
+  .profile-role-pill svg { width:10px; height:10px; }
+
+  .profile-stats { display:grid; grid-template-columns:1fr 1fr; border-top:0.5px solid var(--border-light); margin-top:14px; }
+  .profile-stat { padding:12px 10px; text-align:center; }
+  .profile-stat + .profile-stat { border-left:0.5px solid var(--border-light); }
+  .profile-stat-val { font-size:15px; font-weight:500; color:var(--text-primary); }
+  .profile-stat-lbl { font-size:10px; color:var(--text-tertiary); margin-top:2px; }
+
+  .profile-info-list { padding:12px 14px; border-top:0.5px solid var(--border-light); display:flex; flex-direction:column; gap:9px; }
+  .profile-info-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary); }
+  .profile-info-row svg { width:13px; height:13px; flex-shrink:0; color:var(--text-tertiary); }
+  .profile-info-val { color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .profile-joined { padding:10px 14px; border-top:0.5px solid var(--border-light); font-size:11px; color:var(--text-tertiary); text-align:center; }
+
+  /* ── TABS ── */
+  .profile-tabs { display:flex; gap:2px; background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); padding:4px; margin-bottom:12px; }
+  .profile-tab { flex:1; padding:7px 6px; border:none; background:transparent; cursor:pointer; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:11.5px; font-weight:500; color:var(--text-secondary); transition:all .15s; display:flex; align-items:center; justify-content:center; gap:5px; }
+  .profile-tab svg { width:14px; height:14px; }
+  .profile-tab.active { background:var(--role-color); color:#fff; }
+  .profile-tab:not(.active):hover { background:var(--bg-secondary); color:var(--text-primary); }
+
+  /* ── PANEL ── */
+  .profile-panel { display:none; flex-direction:column; gap:12px; }
+  .profile-panel.active { display:flex; }
+
+  /* ── FORM CARD ── */
+  .form-card { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); overflow:hidden; }
+  .form-section { padding:18px 20px; border-bottom:0.5px solid var(--border-light); }
+  .form-section:last-child { border-bottom:none; }
+  .section-label { font-size:10.5px; font-weight:600; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:.7px; margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+  .section-label svg { width:13px; height:13px; }
+
+  .field-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .f-group { margin-bottom:12px; }
+  .f-group:last-child { margin-bottom:0; }
+  .f-label { display:block; font-size:11px; font-weight:500; color:var(--text-secondary); margin-bottom:5px; letter-spacing:.2px; }
+  .f-wrap { position:relative; }
+  .f-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); width:13px; height:13px; color:var(--text-tertiary); pointer-events:none; }
+  .f-input, .f-select, .f-textarea {
+    width:100%; padding:8px 11px 8px 31px;
+    border:0.5px solid var(--border-medium);
+    border-radius:var(--radius-sm);
+    font-size:12.5px; font-family:'DM Sans',sans-serif;
+    background:var(--bg-secondary); color:var(--text-primary);
+    outline:none; transition:border-color .15s, box-shadow .15s, background .15s;
+    appearance:none;
   }
-
-  /* ── LEFT CARD ── */
-  .profile-id-card {
-    background: var(--bg-card);
-    border: 0.5px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    position: sticky;
-    top: 24px;
+  .f-textarea { padding:8px 11px; resize:vertical; min-height:70px; line-height:1.5; }
+  .f-input:focus, .f-select:focus, .f-textarea:focus {
+    border-color:var(--role-color);
+    box-shadow:0 0 0 3px rgba(0,0,0,0.05);
+    background:var(--bg-card);
   }
-
-  .profile-cover {
-    height: 80px;
-    background: var(--role-color);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .profile-cover::before {
-    content: '';
-    position: absolute;
-    top: -20px; right: -20px;
-    width: 100px; height: 100px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-  }
-
-  .profile-cover::after {
-    content: '';
-    position: absolute;
-    bottom: -30px; left: 20px;
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.05);
-  }
-
-  .profile-avatar-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 20px 20px;
-    margin-top: -28px;
-    position: relative;
-  }
-
-  .profile-avatar {
-    width: 56px; height: 56px;
-    border-radius: 50%;
-    border: 3px solid var(--bg-card);
-    background: var(--role-color);
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    color: #fff;
-    position: relative;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    cursor: pointer;
-  }
-
-  .avatar-edit-overlay {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.45);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .profile-avatar:hover .avatar-edit-overlay { opacity: 1; }
-  .avatar-edit-overlay svg { width: 16px; height: 16px; color: #fff; }
-
-  .profile-name {
-    font-family: 'DM Serif Display', serif;
-    font-size: 17px;
-    color: var(--text-primary);
-    margin-top: 10px;
-    text-align: center;
-  }
-
-  .profile-username {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-    text-align: center;
-  }
-
-  .profile-role-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 600;
-    background: var(--role-badge-bg, #1A1A1A);
-    color: var(--role-badge-text, #fff);
-    margin-top: 10px;
-    text-transform: capitalize;
-    letter-spacing: 0.4px;
-  }
-
-  .profile-role-pill svg { width: 10px; height: 10px; }
-
-  .profile-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-top: 0.5px solid var(--border-light);
-    margin-top: 16px;
-  }
-
-  .profile-stat {
-    padding: 14px 12px;
-    text-align: center;
-  }
-
-  .profile-stat + .profile-stat {
-    border-left: 0.5px solid var(--border-light);
-  }
-
-  .profile-stat-val { font-size: 16px; font-weight: 500; color: var(--text-primary); }
-  .profile-stat-lbl { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
-
-  .profile-info-list {
-    padding: 14px 16px;
-    border-top: 0.5px solid var(--border-light);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .profile-info-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .profile-info-row svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--text-tertiary); }
-  .profile-info-val { color: var(--text-primary); font-weight: 400; }
-
-  .profile-joined {
-    padding: 12px 16px;
-    border-top: 0.5px solid var(--border-light);
-    font-size: 11px;
-    color: var(--text-tertiary);
-    text-align: center;
-  }
-
-  /* ── RIGHT COLUMN ── */
-  .profile-right { display: flex; flex-direction: column; gap: 14px; }
-
-  /* Form card */
-  .form-card {
-    background: var(--bg-card);
-    border: 0.5px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-  }
-
-  .form-section {
-    padding: 20px 22px;
-    border-bottom: 0.5px solid var(--border-light);
-  }
-
-  .form-section:last-child { border-bottom: none; }
-
-  .section-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-
-  .section-label svg { width: 13px; height: 13px; }
-
-  .field-row-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .f-group { margin-bottom: 14px; }
-  .f-group:last-child { margin-bottom: 0; }
-
-  .f-label {
-    display: block;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-    letter-spacing: 0.2px;
-  }
-
-  .f-wrap { position: relative; }
-
-  .f-icon {
-    position: absolute;
-    left: 11px; top: 50%;
-    transform: translateY(-50%);
-    width: 14px; height: 14px;
-    color: var(--text-tertiary);
-    pointer-events: none;
-  }
-
-  .f-input, .f-select {
-    width: 100%;
-    padding: 9px 12px 9px 34px;
-    border: 0.5px solid var(--border-medium);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
-    appearance: none;
-  }
-
-  .f-input:focus, .f-select:focus {
-    border-color: var(--role-color);
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
-    background: var(--bg-card);
-  }
-
   [data-theme="dark"] .f-input:focus,
-  [data-theme="dark"] .f-select:focus {
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
-  }
-
+  [data-theme="dark"] .f-select:focus,
+  [data-theme="dark"] .f-textarea:focus { box-shadow:0 0 0 3px rgba(255,255,255,0.04); }
   .f-select {
-    padding-right: 30px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3l3 4 3-4' stroke='%23A9A8A5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
+    padding-right:28px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3l3 4 3-4' stroke='%23A9A8A5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 9px center;
   }
 
-  /* Role selector — visual cards */
-  .role-selector {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
+  /* ── ROLE SELECTOR ── */
+  .role-selector { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .role-option { display:none; }
+  .role-option-label { display:flex; flex-direction:column; align-items:center; gap:7px; padding:12px 8px; border:0.5px solid var(--border-medium); border-radius:var(--radius-md); cursor:pointer; transition:border-color .15s, background .15s; text-align:center; }
+  .role-option-label:hover { background:var(--bg-secondary); }
+  .role-option:checked + .role-option-label { border-color:var(--role-color); background:var(--bg-secondary); box-shadow:0 0 0 1.5px var(--role-color); }
+  .role-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--bg-page); }
+  .role-icon svg { width:15px; height:15px; color:var(--text-secondary); }
+  .role-option:checked + .role-option-label .role-icon { background:var(--role-color); }
+  .role-option:checked + .role-option-label .role-icon svg { color:#fff; }
+  .role-name { font-size:11.5px; font-weight:500; color:var(--text-primary); }
+  .role-desc { font-size:10px; color:var(--text-tertiary); margin-top:1px; }
 
-  .role-option { display: none; }
+  /* ── NOTIFICATION TOGGLES ── */
+  .notif-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:0.5px solid var(--border-light); }
+  .notif-row:last-child { border-bottom:none; }
+  .notif-info { flex:1; }
+  .notif-title { font-size:12.5px; font-weight:500; color:var(--text-primary); }
+  .notif-sub { font-size:11px; color:var(--text-tertiary); margin-top:2px; }
+  .toggle-wrap { position:relative; flex-shrink:0; }
+  .toggle-check { display:none; }
+  .toggle-label { display:block; width:36px; height:20px; border-radius:10px; background:var(--border-medium); position:relative; cursor:pointer; transition:background .2s; }
+  .toggle-label::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:#fff; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+  .toggle-check:checked + .toggle-label { background:var(--role-color); }
+  .toggle-check:checked + .toggle-label::after { left:19px; }
 
-  .role-option-label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 10px;
-    border: 0.5px solid var(--border-medium);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-    text-align: center;
-  }
+  /* ── PASSWORD STRENGTH ── */
+  .pw-strength-bar { height:3px; border-radius:2px; background:var(--border-light); margin-top:5px; overflow:hidden; }
+  .pw-strength-fill { height:100%; border-radius:2px; transition:width .3s, background .3s; width:0%; }
+  .pw-hint { font-size:10.5px; color:var(--text-tertiary); margin-top:4px; }
 
-  .role-option-label:hover { background: var(--bg-secondary); }
+  /* ── 2FA STATUS ── */
+  .twofa-block { display:flex; align-items:center; gap:10px; padding:11px 13px; border:0.5px solid var(--border-light); border-radius:var(--radius-sm); background:var(--bg-secondary); }
+  .twofa-icon { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--role-color); flex-shrink:0; }
+  .twofa-icon svg { width:14px; height:14px; color:#fff; }
+  .twofa-info { flex:1; }
+  .twofa-name { font-size:12.5px; font-weight:500; color:var(--text-primary); }
+  .twofa-sub  { font-size:11px; color:var(--text-tertiary); margin-top:2px; }
 
-  .role-option:checked + .role-option-label {
-    border-color: var(--role-color);
-    background: var(--bg-secondary);
-    box-shadow: 0 0 0 2px var(--role-color);
-  }
+  /* ── SESSIONS ── */
+  .session-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border:0.5px solid var(--border-light); border-radius:var(--radius-sm); margin-bottom:7px; }
+  .session-item:last-child { margin-bottom:0; }
+  .session-item.current { background:var(--bg-secondary); }
+  .session-icon svg { width:16px; height:16px; color:var(--text-tertiary); }
+  .session-name { font-size:12.5px; font-weight:500; color:var(--text-primary); }
+  .session-meta { font-size:11px; color:var(--text-tertiary); margin-top:2px; }
+  .session-badge { display:inline-flex; align-items:center; padding:1px 7px; border-radius:20px; font-size:10px; font-weight:600; background:var(--role-color); color:#fff; margin-left:6px; }
 
-  .role-icon {
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--bg-page);
-  }
+  /* ── ACTIVITY LOG ── */
+  .activity-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:0.5px solid var(--border-light); }
+  .activity-item:last-child { border-bottom:none; }
+  .act-dot { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .act-dot svg { width:13px; height:13px; }
+  .act-dot.login    { background:#F0FAF5; } .act-dot.login    svg { color:#1E7F5A; }
+  .act-dot.edit     { background:#EEF4FA; } .act-dot.edit     svg { color:#2C5F8A; }
+  .act-dot.security { background:#FEF9EC; } .act-dot.security svg { color:#B07D20; }
+  .act-dot.danger   { background:#FDF2F2; } .act-dot.danger   svg { color:#C0392B; }
+  .act-title  { font-size:12.5px; font-weight:500; color:var(--text-primary); }
+  .act-time   { font-size:11px; color:var(--text-tertiary); margin-top:2px; }
+  .act-device { font-size:10.5px; color:var(--text-tertiary); }
 
-  .role-icon svg { width: 16px; height: 16px; color: var(--text-secondary); }
-  .role-option:checked + .role-option-label .role-icon { background: var(--role-color); }
-  .role-option:checked + .role-option-label .role-icon svg { color: #fff; }
+  /* ── SUBMIT BAR ── */
+  .submit-bar { background:var(--bg-card); border:0.5px solid var(--border-light); border-radius:var(--radius-lg); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .submit-bar-info { font-size:11.5px; color:var(--text-secondary); }
+  .submit-actions { display:flex; gap:7px; }
 
-  .role-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
-  .role-desc { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  /* ── DANGER ZONE ── */
+  .danger-zone { background:var(--bg-card); border:0.5px solid var(--red-text); border-radius:var(--radius-lg); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .danger-title { font-size:13px; font-weight:500; color:var(--red-text); margin-bottom:2px; }
+  .danger-sub   { font-size:12px; color:var(--text-secondary); }
+  .btn-danger { display:inline-flex; align-items:center; gap:6px; padding:8px 15px; border-radius:var(--radius-sm); font-size:12px; font-weight:500; font-family:'DM Sans',sans-serif; cursor:pointer; border:0.5px solid var(--red-text); background:var(--red-bg); color:var(--red-text); transition:background .15s; text-decoration:none; flex-shrink:0; }
+  .btn-danger:hover { background:var(--red-text); color:#fff; }
+  .btn-danger svg { width:13px; height:13px; }
 
-  /* Danger zone */
-  .danger-zone {
-    background: var(--bg-card);
-    border: 0.5px solid var(--red-text);
-    border-radius: var(--radius-lg);
-    padding: 18px 22px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
+  /* ── AVATAR UPLOAD MODAL ── */
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:200; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .modal-backdrop.open { opacity:1; pointer-events:all; }
+  .modal-box { background:var(--bg-card); border-radius:var(--radius-lg); padding:22px; width:300px; border:0.5px solid var(--border-light); transform:scale(.96); transition:transform .2s; }
+  .modal-backdrop.open .modal-box { transform:scale(1); }
+  .modal-title { font-family:'DM Serif Display',serif; font-size:15px; color:var(--text-primary); margin-bottom:3px; }
+  .modal-sub { font-size:11.5px; color:var(--text-secondary); margin-bottom:14px; }
+  .upload-dropzone { border:1.5px dashed var(--border-medium); border-radius:var(--radius-sm); padding:26px 14px; text-align:center; cursor:pointer; transition:.15s; background:var(--bg-secondary); }
+  .upload-dropzone:hover { border-color:var(--role-color); }
+  .upload-dropzone svg { width:28px; height:28px; color:var(--text-tertiary); display:block; margin:0 auto 8px; }
+  .upload-dropzone p { font-size:12px; color:var(--text-secondary); }
+  .upload-dropzone span { color:var(--role-color); font-weight:500; }
+  .modal-actions { display:flex; justify-content:flex-end; gap:7px; margin-top:14px; }
 
-  .danger-title { font-size: 13px; font-weight: 500; color: var(--red-text); margin-bottom: 2px; }
-  .danger-sub   { font-size: 12px; color: var(--text-secondary); }
-
-  .btn-danger {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 8px 16px;
-    border-radius: var(--radius-sm);
-    font-size: 12px; font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    border: 0.5px solid var(--red-text);
-    background: var(--red-bg);
-    color: var(--red-text);
-    transition: background 0.15s;
-    text-decoration: none;
-    flex-shrink: 0;
-  }
-
-  .btn-danger:hover { background: var(--red-text); color: #fff; }
-  .btn-danger svg { width: 14px; height: 14px; }
-
-  /* Submit bar */
-  .submit-bar {
-    background: var(--bg-card);
-    border: 0.5px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .submit-bar-info { font-size: 12px; color: var(--text-secondary); }
-  .submit-actions { display: flex; gap: 8px; }
-
-  @media (max-width: 900px) {
-    .profile-layout { grid-template-columns: 1fr; }
-    .profile-id-card { position: static; }
-  }
-
-  @media (max-width: 600px) {
-    .field-row-2 { grid-template-columns: 1fr; }
-    .role-selector { grid-template-columns: 1fr; }
-  }
+  /* ── RESPONSIVE ── */
+  @media (max-width:900px) { .profile-layout { grid-template-columns:1fr; } .profile-id-card { position:static; } }
+  @media (max-width:600px) { .field-row-2 { grid-template-columns:1fr; } .role-selector { grid-template-columns:1fr; } .profile-tabs { flex-wrap:wrap; } }
 </style>
 
 <!-- Page header -->
 <div class="profile-header">
   <div>
     <div class="page-title">My Profile</div>
-    <div class="page-sub">Manage your personal information and preferences</div>
+    <div class="page-sub">Manage your personal information, security, and preferences</div>
   </div>
 </div>
 
-<!-- Messages -->
+<!-- Flash messages -->
 {% if messages %}
   {% for message in messages %}
-    <div class="alert-estate {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}" style="margin-bottom:16px;">
+    <div class="alert-estate {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}" style="margin-bottom:14px;">
       {{ message }}
     </div>
   {% endfor %}
@@ -388,16 +201,21 @@
 
 <div class="profile-layout">
 
-  <!-- ── LEFT: Identity card ── -->
+  <!-- ══════════════════════════════════════
+       SIDEBAR — identity card
+  ══════════════════════════════════════ -->
   <div class="profile-id-card">
     <div class="profile-cover"></div>
     <div class="profile-avatar-wrap">
-      <div class="profile-avatar">
+
+      <!-- Clicking avatar opens photo-upload modal -->
+      <div class="profile-avatar" onclick="openAvatarModal()">
         {{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}
         <div class="avatar-edit-overlay">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3l9-9z"/></svg>
         </div>
       </div>
+
       <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
       <div class="profile-username">@{{ user.username }}</div>
 
@@ -412,40 +230,20 @@
       </div>
     </div>
 
-    <!-- Quick stats -->
-<!-- Quick stats -->
-<div class="profile-stats">
-    {% if user.role == 'landlord' %}
-        <div class="profile-stat">
-            <div class="profile-stat-val">{{ stats.properties_count|default:0 }}</div>
-            <div class="profile-stat-lbl">Properties</div>
-        </div>
-        <div class="profile-stat">
-            <div class="profile-stat-val">{{ stats.tenants_count|default:0 }}</div>
-            <div class="profile-stat-lbl">Tenants</div>
-        </div>
+    <!-- Stats (role-aware) -->
+    <div class="profile-stats">
+      {% if user.role == 'landlord' %}
+        <div class="profile-stat"><div class="profile-stat-val">{{ stats.properties_count|default:0 }}</div><div class="profile-stat-lbl">Properties</div></div>
+        <div class="profile-stat"><div class="profile-stat-val">{{ stats.tenants_count|default:0 }}</div><div class="profile-stat-lbl">Tenants</div></div>
+      {% elif user.role == 'agent' %}
+        <div class="profile-stat"><div class="profile-stat-val">{{ stats.listings_count|default:0 }}</div><div class="profile-stat-lbl">Listings</div></div>
+        <div class="profile-stat"><div class="profile-stat-val">{{ stats.clients_count|default:0 }}</div><div class="profile-stat-lbl">Clients</div></div>
+      {% elif user.role == 'tenant' %}
+        <div class="profile-stat"><div class="profile-stat-val">{{ stats.payments_count|default:0 }}</div><div class="profile-stat-lbl">Payments</div></div>
+        <div class="profile-stat"><div class="profile-stat-val">{{ stats.requests_count|default:0 }}</div><div class="profile-stat-lbl">Requests</div></div>
+      {% endif %}
+    </div>
 
-    {% elif user.role == 'agent' %}
-        <div class="profile-stat">
-            <div class="profile-stat-val">{{ stats.listings_count|default:0 }}</div>
-            <div class="profile-stat-lbl">Listings</div>
-        </div>
-        <div class="profile-stat">
-            <div class="profile-stat-val">{{ stats.clients_count|default:0 }}</div>
-            <div class="profile-stat-lbl">Clients</div>
-        </div>
-
-    {% elif user.role == 'tenant' %}
-        <div class="profile-stat">
-            <div class="profile-stat-val">{{ stats.payments_count|default:0 }}</div>
-            <div class="profile-stat-lbl">Payments</div>
-        </div>
-        <div class="profile-stat">
-            <div class="profile-stat-val">{{ stats.requests_count|default:0 }}</div>
-            <div class="profile-stat-lbl">Requests</div>
-        </div>
-    {% endif %}
-</div>
     <!-- Quick info -->
     <div class="profile-info-list">
       {% if user.email %}
@@ -466,169 +264,598 @@
         <span class="profile-info-val">{{ user.birth_date }}</span>
       </div>
       {% endif %}
+      {% if user.city %}
+      <div class="profile-info-row">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a4 4 0 00-4 4c0 3 4 8 4 8s4-5 4-8a4 4 0 00-4-4z"/><circle cx="8" cy="6" r="1.2"/></svg>
+        <span class="profile-info-val">{{ user.city }}{% if user.country %}, {{ user.country }}{% endif %}</span>
+      </div>
+      {% endif %}
     </div>
 
-    <div class="profile-joined">
-      Member since {{ user.date_joined|date:"F Y" }}
-    </div>
+    <div class="profile-joined">Member since {{ user.date_joined|date:"F Y" }}</div>
   </div>
 
-  <!-- ── RIGHT: Form ── -->
-  <div class="profile-right">
-    <form method="POST">
-      {% csrf_token %}
 
-      <!-- Personal info -->
-      <div class="form-card">
-        <div class="form-section">
-          <div class="section-label">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
-            Personal information
-          </div>
+  <!-- ══════════════════════════════════════
+       RIGHT COLUMN
+  ══════════════════════════════════════ -->
+  <div style="display:flex;flex-direction:column;gap:12px;">
 
-          <div class="field-row-2">
-            <div class="f-group">
-              <label class="f-label">First name</label>
-              <div class="f-wrap">
-                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
-                <input type="text" name="first_name" class="f-input"
-                       placeholder="Adam"
-                       value="{{ user.first_name }}" />
-              </div>
-            </div>
-            <div class="f-group">
-              <label class="f-label">Last name</label>
-              <div class="f-wrap">
-                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
-                <input type="text" name="last_name" class="f-input"
-                       placeholder="Harrak"
-                       value="{{ user.last_name }}" />
-              </div>
-            </div>
-          </div>
-
-          <div class="field-row-2">
-            <div class="f-group">
-              <label class="f-label">Username</label>
-              <div class="f-wrap">
-                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M8 5v4M6 7h4"/></svg>
-                {{ form.username }}
-              </div>
-            </div>
-            <div class="f-group">
-              <label class="f-label">Email address</label>
-              <div class="f-wrap">
-                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
-                {{ form.email }}
-              </div>
-            </div>
-          </div>
-
-          <div class="field-row-2">
-            <div class="f-group" style="margin-bottom:0;">
-              <label class="f-label">Phone number</label>
-              <div class="f-wrap">
-                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h3l1.5 3.5-1.8 1.1a9 9 0 004.7 4.7l1.1-1.8L15 11v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z"/></svg>
-                {{ form.phone }}
-              </div>
-            </div>
-            <div class="f-group" style="margin-bottom:0;">
-              <label class="f-label">Date of birth</label>
-              <div class="f-wrap">
-                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
-                {{ form.birth_date }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Role selector -->
-        <div class="form-section">
-          <div class="section-label">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
-            Account role
-          </div>
-
-          <div class="role-selector">
-            <!-- Landlord -->
-            <div>
-              <input type="radio" name="role" value="landlord" id="role_landlord" class="role-option"
-                     {% if user.role == 'landlord' %}checked{% endif %} />
-              <label for="role_landlord" class="role-option-label">
-                <div class="role-icon">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
-                </div>
-                <div class="role-name">Landlord</div>
-                <div class="role-desc">Own & manage properties</div>
-              </label>
-            </div>
-
-            <!-- Agent -->
-            <div>
-              <input type="radio" name="role" value="agent" id="role_agent" class="role-option"
-                     {% if user.role == 'agent' %}checked{% endif %} />
-              <label for="role_agent" class="role-option-label">
-                <div class="role-icon">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
-                </div>
-                <div class="role-name">Agent</div>
-                <div class="role-desc">List & manage clients</div>
-              </label>
-            </div>
-
-            <!-- Tenant -->
-            <div>
-              <input type="radio" name="role" value="tenant" id="role_tenant" class="role-option"
-                     {% if user.role == 'tenant' %}checked{% endif %} />
-              <label for="role_tenant" class="role-option-label">
-                <div class="role-icon">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
-                </div>
-                <div class="role-name">Tenant</div>
-                <div class="role-desc">Manage your lease</div>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Submit bar -->
-      <div class="submit-bar">
-        <div class="submit-info" style="font-size:12px;color:var(--text-secondary);">
-          Last updated: {{ user.date_joined|date:"M d, Y" }}
-        </div>
-        <div class="submit-actions">
-          <button type="reset" class="btn-estate">Discard changes</button>
-          <button type="submit" class="btn-estate primary">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h10M8 4l4 4-4 4"/></svg>
-            Save changes
-          </button>
-        </div>
-      </div>
-    </form>
-
-    <!-- Danger zone -->
-    <div class="danger-zone">
-      <div>
-        <div class="danger-title">Delete account</div>
-        <div class="danger-sub">Permanently remove your account and all associated data. This cannot be undone.</div>
-      </div>
-      <button class="btn-danger">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/></svg>
-        Delete account
+    <!-- ── TABS ── -->
+    <div class="profile-tabs">
+      <button class="profile-tab active" onclick="switchTab(this,'tab-personal')" type="button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+        Personal
+      </button>
+      <button class="profile-tab" onclick="switchTab(this,'tab-security')" type="button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l6 2.5V8c0 3.5-6 7-6 7S2 11.5 2 8V3.5L8 1z"/></svg>
+        Security
+      </button>
+      <button class="profile-tab" onclick="switchTab(this,'tab-notifs')" type="button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a5 5 0 00-5 5v3l-1.5 2h13L13 9V6a5 5 0 00-5-5z"/><path d="M6 13a2 2 0 004 0"/></svg>
+        Notifications
+      </button>
+      <button class="profile-tab" onclick="switchTab(this,'tab-activity')" type="button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        Activity
       </button>
     </div>
 
+
+    <!-- ════════════════════════════════════
+         TAB 1 — PERSONAL
+    ════════════════════════════════════ -->
+    <div id="tab-personal" class="profile-panel active">
+      <form method="POST" action="{% url 'profile' %}">
+        {% csrf_token %}
+        <input type="hidden" name="tab" value="personal">
+
+        <div class="form-card">
+
+          <!-- Personal info -->
+          <div class="form-section">
+            <div class="section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+              Personal information
+            </div>
+
+            <div class="field-row-2">
+              <div class="f-group">
+                <label class="f-label">First name</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+                  <input type="text" name="first_name" class="f-input" placeholder="First name" value="{{ user.first_name }}">
+                </div>
+              </div>
+              <div class="f-group">
+                <label class="f-label">Last name</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+                  <input type="text" name="last_name" class="f-input" placeholder="Last name" value="{{ user.last_name }}">
+                </div>
+              </div>
+            </div>
+
+            <div class="field-row-2">
+              <div class="f-group">
+                <label class="f-label">Username</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5v6"/></svg>
+                  {{ form.username }}
+                </div>
+              </div>
+              <div class="f-group">
+                <label class="f-label">Email address</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+                  {{ form.email }}
+                </div>
+              </div>
+            </div>
+
+            <div class="field-row-2">
+              <div class="f-group" style="margin:0">
+                <label class="f-label">Phone number</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h3l1.5 3.5-1.8 1.1a9 9 0 004.7 4.7l1.1-1.8L15 11v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z"/></svg>
+                  {{ form.phone }}
+                </div>
+              </div>
+              <div class="f-group" style="margin:0">
+                <label class="f-label">Date of birth</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M5 1v4M11 1v4"/></svg>
+                  {{ form.birth_date }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Location -->
+          <div class="form-section">
+            <div class="section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a4 4 0 00-4 4c0 3 4 8 4 8s4-5 4-8a4 4 0 00-4-4z"/><circle cx="8" cy="6" r="1.2"/></svg>
+              Location
+            </div>
+            <div class="field-row-2">
+              <div class="f-group" style="margin:0">
+                <label class="f-label">City</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="5" width="14" height="9" rx="1"/><path d="M5 5V3a2 2 0 014 0v2"/></svg>
+                  {{ form.city }}
+                </div>
+              </div>
+              <div class="f-group" style="margin:0">
+                <label class="f-label">Country</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2a10 10 0 010 12M8 2a10 10 0 000 12"/></svg>
+                  {{ form.country }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bio -->
+          <div class="form-section">
+            <div class="section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 7h9M2 10h7M2 13h5"/></svg>
+              Bio
+            </div>
+            <div class="f-group" style="margin:0">
+              <label class="f-label">Short bio</label>
+              {{ form.bio }}
+            </div>
+          </div>
+
+          <!-- Role -->
+          <div class="form-section">
+            <div class="section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+              Account role
+            </div>
+            <div class="role-selector">
+              <div>
+                <input type="radio" name="role" value="landlord" id="role_landlord" class="role-option" {% if user.role == 'landlord' %}checked{% endif %}>
+                <label for="role_landlord" class="role-option-label">
+                  <div class="role-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg></div>
+                  <div class="role-name">Landlord</div><div class="role-desc">Own & manage</div>
+                </label>
+              </div>
+              <div>
+                <input type="radio" name="role" value="agent" id="role_agent" class="role-option" {% if user.role == 'agent' %}checked{% endif %}>
+                <label for="role_agent" class="role-option-label">
+                  <div class="role-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg></div>
+                  <div class="role-name">Agent</div><div class="role-desc">List & manage clients</div>
+                </label>
+              </div>
+              <div>
+                <input type="radio" name="role" value="tenant" id="role_tenant" class="role-option" {% if user.role == 'tenant' %}checked{% endif %}>
+                <label for="role_tenant" class="role-option-label">
+                  <div class="role-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg></div>
+                  <div class="role-name">Tenant</div><div class="role-desc">Manage your lease</div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit bar -->
+        <div class="submit-bar">
+          <div class="submit-bar-info">Last updated: {{ user.date_joined|date:"M d, Y" }}</div>
+          <div class="submit-actions">
+            <button type="reset" class="btn-estate">Discard changes</button>
+            <button type="submit" class="btn-estate primary">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h10M8 4l4 4-4 4"/></svg>
+              Save changes
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Danger zone -->
+      <div class="danger-zone">
+        <div>
+          <div class="danger-title">Delete account</div>
+          <div class="danger-sub">Permanently remove your account and all associated data. This cannot be undone.</div>
+        </div>
+        <form method="POST" action="{% url 'delete_account' %}" onsubmit="return confirm('Are you sure? This is permanent.');">
+          {% csrf_token %}
+          <button type="submit" class="btn-danger">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/></svg>
+            Delete account
+          </button>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ════════════════════════════════════
+         TAB 2 — SECURITY
+    ════════════════════════════════════ -->
+    <div id="tab-security" class="profile-panel">
+      <div class="form-card">
+
+        <!-- Change password -->
+        <div class="form-section">
+          <div class="section-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7V5a3 3 0 016 0v2"/><rect x="2" y="7" width="12" height="8" rx="1.5"/></svg>
+            Change password
+          </div>
+          <form method="POST" action="{% url 'profile' %}">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="security">
+
+            <div class="f-group">
+              <label class="f-label">Current password</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7V5a3 3 0 016 0v2"/><rect x="2" y="7" width="12" height="8" rx="1.5"/></svg>
+                <input type="password" name="current_password" class="f-input" placeholder="Enter current password" autocomplete="current-password">
+              </div>
+            </div>
+            <div class="f-group">
+              <label class="f-label">New password</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7V5a3 3 0 016 0v2"/><rect x="2" y="7" width="12" height="8" rx="1.5"/></svg>
+                <input type="password" name="new_password1" id="pw-new" class="f-input" placeholder="Min. 8 characters" autocomplete="new-password" oninput="checkStrength(this.value)">
+              </div>
+              <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-fill"></div></div>
+              <div class="pw-hint" id="pw-hint">Choose a new password</div>
+            </div>
+            <div class="f-group" style="margin:0">
+              <label class="f-label">Confirm new password</label>
+              <div class="f-wrap">
+                <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7V5a3 3 0 016 0v2"/><rect x="2" y="7" width="12" height="8" rx="1.5"/></svg>
+                <input type="password" name="new_password2" class="f-input" placeholder="Repeat new password" autocomplete="new-password">
+              </div>
+            </div>
+            <div style="margin-top:12px;">
+              <button type="submit" class="btn-estate primary">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h10M8 4l4 4-4 4"/></svg>
+                Update password
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 2FA -->
+        <div class="form-section">
+          <div class="section-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l6 2.5V8c0 3.5-6 7-6 7S2 11.5 2 8V3.5L8 1z"/></svg>
+            Two-factor authentication
+          </div>
+          <div class="twofa-block">
+            <div class="twofa-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l6 2.5V8c0 3.5-6 7-6 7S2 11.5 2 8V3.5L8 1z"/><path d="M5.5 8l2 2 3-3"/></svg>
+            </div>
+            <div class="twofa-info">
+              <div class="twofa-name">Authenticator app — Active</div>
+              <div class="twofa-sub">Verified 2 days ago via Google Authenticator</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap;">
+            <button type="button" class="btn-estate">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><path d="M1 8a7 7 0 1012.5-4.3"/><path d="M13 1v3h-3"/></svg>
+              Change method
+            </button>
+            <button type="button" class="btn-estate" style="color:var(--red-text);border-color:var(--red-text)">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><path d="M3 3l10 10M13 3L3 13"/></svg>
+              Disable 2FA
+            </button>
+          </div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="form-section">
+          <div class="section-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="9" rx="1.5"/><path d="M5 15h6M8 12v3"/></svg>
+            Active sessions
+          </div>
+          <div class="session-item current">
+            <div class="session-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="9" rx="1.5"/><path d="M5 15h6M8 12v3"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="session-name">MacBook Pro · Chrome <span class="session-badge">Current</span></div>
+              <div class="session-meta">Casablanca, Morocco · {{ "now"|date:"M d, Y" }}</div>
+            </div>
+          </div>
+          <div class="session-item">
+            <div class="session-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="1" width="8" height="14" rx="1.5"/><circle cx="8" cy="12" r=".8" fill="currentColor"/></svg>
+            </div>
+            <div style="flex:1">
+              <div class="session-name">iPhone 15 · Safari</div>
+              <div class="session-meta">Casablanca, Morocco · 2 days ago</div>
+            </div>
+            <form method="POST" action="{% url 'profile' %}">
+              {% csrf_token %}
+              <input type="hidden" name="tab" value="revoke_session">
+              <button type="submit" class="btn-estate" style="font-size:11.5px;color:var(--red-text);border-color:var(--red-text)">Revoke</button>
+            </form>
+          </div>
+          <div style="margin-top:10px;">
+            <form method="POST" action="{% url 'profile' %}">
+              {% csrf_token %}
+              <input type="hidden" name="tab" value="revoke_all">
+              <button type="submit" class="btn-estate" style="color:var(--red-text);border-color:var(--red-text)">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><path d="M2 6h12M6 3l2-2 2 2M4 6v7a1 1 0 001 1h6a1 1 0 001-1V6"/></svg>
+                Sign out all other sessions
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ════════════════════════════════════
+         TAB 3 — NOTIFICATIONS
+    ════════════════════════════════════ -->
+    <div id="tab-notifs" class="profile-panel">
+      <form method="POST" action="{% url 'profile' %}">
+        {% csrf_token %}
+        <input type="hidden" name="tab" value="notifications">
+
+        <div class="form-card">
+          <!-- Email -->
+          <div class="form-section">
+            <div class="section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
+              Email notifications
+            </div>
+
+            {% for pref_key, pref_label, pref_sub in notif_email_prefs %}
+            <div class="notif-row">
+              <div class="notif-info">
+                <div class="notif-title">{{ pref_label }}</div>
+                <div class="notif-sub">{{ pref_sub }}</div>
+              </div>
+              <div class="toggle-wrap">
+                <input type="checkbox" name="notif_email_{{ pref_key }}" id="ne_{{ pref_key }}" class="toggle-check" {% if notif_settings|get_notif:pref_key %}checked{% endif %}>
+                <label for="ne_{{ pref_key }}" class="toggle-label"></label>
+              </div>
+            </div>
+            {% empty %}
+            {# Fallback static rows when context var not supplied #}
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">New payment received</div><div class="notif-sub">When a tenant pays their rent</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_email_payment" id="ne_payment" class="toggle-check" checked><label for="ne_payment" class="toggle-label"></label></div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">Maintenance requests</div><div class="notif-sub">New or updated requests on your properties</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_email_maintenance" id="ne_maintenance" class="toggle-check" checked><label for="ne_maintenance" class="toggle-label"></label></div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">Lease expiry reminders</div><div class="notif-sub">30 days before a contract ends</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_email_lease_expiry" id="ne_lease_expiry" class="toggle-check" checked><label for="ne_lease_expiry" class="toggle-label"></label></div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">Overdue payments</div><div class="notif-sub">When a payment is past its due date</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_email_overdue" id="ne_overdue" class="toggle-check"><label for="ne_overdue" class="toggle-label"></label></div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">New messages</div><div class="notif-sub">Unread messages from tenants or agents</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_email_messages" id="ne_messages" class="toggle-check" checked><label for="ne_messages" class="toggle-label"></label></div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Push -->
+          <div class="form-section">
+            <div class="section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a5 5 0 00-5 5v3l-1.5 2h13L13 9V6a5 5 0 00-5-5z"/><path d="M6 13a2 2 0 004 0"/></svg>
+              Push notifications
+            </div>
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">Urgent alerts</div><div class="notif-sub">Critical issues requiring immediate attention</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_push_urgent" id="np_urgent" class="toggle-check" checked><label for="np_urgent" class="toggle-label"></label></div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">Daily digest</div><div class="notif-sub">Morning summary of activity across properties</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_push_digest" id="np_digest" class="toggle-check"><label for="np_digest" class="toggle-label"></label></div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-info"><div class="notif-title">Product updates</div><div class="notif-sub">New features and improvements</div></div>
+              <div class="toggle-wrap"><input type="checkbox" name="notif_push_updates" id="np_updates" class="toggle-check"><label for="np_updates" class="toggle-label"></label></div>
+            </div>
+          </div>
+
+          <!-- Quiet hours -->
+          <div class="form-section">
+            <div class="section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+              Quiet hours
+            </div>
+            <div class="field-row-2">
+              <div class="f-group" style="margin:0">
+                <label class="f-label">Do not disturb from</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3C5.2 3 3 5.2 3 8s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zM5 8a3 3 0 016 0"/><path d="M10 2l2 1-1 2"/></svg>
+                  <input type="time" name="quiet_from" class="f-input" value="{{ notif_settings.quiet_from|default:'22:00' }}">
+                </div>
+              </div>
+              <div class="f-group" style="margin:0">
+                <label class="f-label">Until</label>
+                <div class="f-wrap">
+                  <svg class="f-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+                  <input type="time" name="quiet_until" class="f-input" value="{{ notif_settings.quiet_until|default:'08:00' }}">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="submit-bar">
+          <div class="submit-bar-info">Changes apply to all future notifications</div>
+          <div class="submit-actions">
+            <button type="submit" class="btn-estate primary">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h10M8 4l4 4-4 4"/></svg>
+              Save preferences
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+
+    <!-- ════════════════════════════════════
+         TAB 4 — ACTIVITY LOG
+    ════════════════════════════════════ -->
+    <div id="tab-activity" class="profile-panel">
+      <div class="form-card">
+        <div class="form-section">
+          <div class="section-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Recent activity
+          </div>
+
+          {% for entry in activity_log %}
+          <div class="activity-item">
+            <div class="act-dot {{ entry.category }}">
+              {% if entry.category == 'login' %}
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3h3a1 1 0 011 1v8a1 1 0 01-1 1h-3M7 11l4-3-4-3M2 8h9"/></svg>
+              {% elif entry.category == 'edit' %}
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3l9-9z"/></svg>
+              {% elif entry.category == 'security' %}
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l6 2.5V8c0 3.5-6 7-6 7S2 11.5 2 8V3.5L8 1z"/></svg>
+              {% elif entry.category == 'danger' %}
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11h.01"/></svg>
+              {% endif %}
+            </div>
+            <div style="flex:1">
+              <div class="act-title">{{ entry.title }}</div>
+              <div class="act-time">{{ entry.timestamp|date:"M d, Y · g:i A" }}</div>
+              {% if entry.device %}
+              <div class="act-device">{{ entry.device }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          {# Fallback static log when context var not supplied #}
+          <div class="activity-item">
+            <div class="act-dot login"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3h3a1 1 0 011 1v8a1 1 0 01-1 1h-3M7 11l4-3-4-3M2 8h9"/></svg></div>
+            <div style="flex:1"><div class="act-title">Signed in</div><div class="act-time">Today</div><div class="act-device">MacBook Pro · Chrome · Casablanca</div></div>
+          </div>
+          <div class="activity-item">
+            <div class="act-dot edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2l3 3-9 9H2v-3l9-9z"/></svg></div>
+            <div style="flex:1"><div class="act-title">Profile updated</div><div class="act-time">{{ user.date_joined|date:"M d, Y" }}</div><div class="act-device">Email and phone changed</div></div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end right column -->
+</div><!-- end profile-layout -->
+
+<!-- ══════════════════════════════════════
+     AVATAR UPLOAD MODAL
+══════════════════════════════════════ -->
+<div class="modal-backdrop" id="avatar-modal">
+  <div class="modal-box">
+    <div class="modal-title">Update profile photo</div>
+    <div class="modal-sub">JPEG or PNG · max 5 MB</div>
+    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" id="avatar-form">
+      {% csrf_token %}
+      <input type="hidden" name="tab" value="avatar">
+      <div class="upload-dropzone" onclick="document.getElementById('avatar-file').click()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v9M5 3l3-2 3 2"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+        <p>Drag & drop or <span>browse</span></p>
+        <input type="file" id="avatar-file" name="avatar" accept="image/*" style="display:none" onchange="previewAvatar(event)">
+      </div>
+      <div style="margin:12px 0;display:flex;justify-content:center;">
+        <div class="profile-avatar" id="avatar-preview" style="width:56px;height:56px;font-size:22px;border:2.5px solid var(--border-medium);position:static;">
+          {{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-estate" onclick="closeAvatarModal()">Cancel</button>
+        <button type="submit" class="btn-estate primary">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M2 8h10M8 4l4 4-4 4"/></svg>
+          Save photo
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
 <script>
-  // Style the Django form widgets to match our design
-  document.querySelectorAll('.f-wrap input, .f-wrap select').forEach(el => {
-    // Add our classes if Django rendered plain inputs
-    if (!el.classList.contains('f-input') && !el.classList.contains('f-select')) {
-      el.classList.add(el.tagName === 'SELECT' ? 'f-select' : 'f-input');
+  /* ── Tab switching ── */
+  function switchTab(btn, panelId) {
+    document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.profile-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(panelId).classList.add('active');
+  }
+
+  /* ── Re-open correct tab after POST redirect ── */
+  (function () {
+    const saved = sessionStorage.getItem('estate_profile_tab');
+    if (saved) {
+      const btn = document.querySelector('[onclick*="' + saved + '"]');
+      if (btn) switchTab(btn, saved);
+      sessionStorage.removeItem('estate_profile_tab');
+    }
+  })();
+  document.querySelectorAll('.profile-tab').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const match = this.getAttribute('onclick').match(/'(tab-\w+)'/);
+      if (match) sessionStorage.setItem('estate_profile_tab', match[1]);
+    });
+  });
+
+  /* ── Password strength ── */
+  function checkStrength(v) {
+    const fill = document.getElementById('pw-fill');
+    const hint = document.getElementById('pw-hint');
+    if (!fill) return;
+    let score = 0;
+    if (v.length >= 8)            score++;
+    if (/[A-Z]/.test(v))         score++;
+    if (/[0-9]/.test(v))         score++;
+    if (/[^A-Za-z0-9]/.test(v))  score++;
+    const map = [
+      { pct: '0%',   color: '',          msg: 'Choose a new password' },
+      { pct: '25%',  color: '#C0392B',   msg: 'Weak — too short or simple' },
+      { pct: '50%',  color: '#B07D20',   msg: 'Fair — add numbers or symbols' },
+      { pct: '75%',  color: '#1E7F5A',   msg: 'Good password' },
+      { pct: '100%', color: 'var(--role-color)', msg: 'Strong password ✓' },
+    ];
+    const s = v.length === 0 ? map[0] : map[score];
+    fill.style.width     = s.pct;
+    fill.style.background = s.color;
+    hint.textContent      = s.msg;
+  }
+
+  /* ── Avatar modal ── */
+  function openAvatarModal()  { document.getElementById('avatar-modal').classList.add('open'); }
+  function closeAvatarModal() { document.getElementById('avatar-modal').classList.remove('open'); }
+  document.getElementById('avatar-modal').addEventListener('click', function (e) {
+    if (e.target === this) closeAvatarModal();
+  });
+
+  function previewAvatar(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = function (ev) {
+      const av = document.getElementById('avatar-preview');
+      av.style.backgroundImage  = 'url(' + ev.target.result + ')';
+      av.style.backgroundSize   = 'cover';
+      av.style.backgroundPosition = 'center';
+      av.textContent = '';
+    };
+    r.readAsDataURL(f);
+  }
+
+  /* ── Style Django-rendered form widgets ── */
+  document.querySelectorAll('.f-wrap input, .f-wrap select, .f-wrap textarea').forEach(el => {
+    if (!el.classList.contains('f-input') && !el.classList.contains('f-select') && !el.classList.contains('f-textarea')) {
+      if (el.tagName === 'SELECT')   el.classList.add('f-select');
+      else if (el.tagName === 'TEXTAREA') el.classList.add('f-textarea');
+      else                            el.classList.add('f-input');
     }
   });
 </script>
+
 {% endblock %}

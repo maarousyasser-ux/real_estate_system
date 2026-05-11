@@ -380,13 +380,21 @@
         <div class="toggle-track"><div class="toggle-thumb"></div></div>
         <span class="toggle-label">Dark mode</span>
       </div>
-      <div class="user-block">
-        <div class="avatar-circle">{{ user.username|first|upper }}{% if user.last_name %}{{ user.last_name|first|upper }}{% endif %}</div>
-        <div style="min-width:0;">
-          <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
-          <div class="user-role">{{ user.role }}</div>
+      <a href="{% url 'profile' %}" class="user-block" style="text-decoration:none;color:inherit;">
+        <div class="avatar-circle">
+          {{ user.username|first|upper }}{% if user.last_name %}{{ user.last_name|first|upper }}{% endif %}
         </div>
-      </div>
+      
+        <div style="min-width:0;">
+          <div class="user-name">
+            {{ user.get_full_name|default:user.username }}
+          </div>
+      
+          <div class="user-role">
+            {{ user.role }}
+          </div>
+        </div>
+      </a>
       <form method="post" action="{% url 'logout' %}" style="margin-top:4px;">
         {% csrf_token %}
         <button type="submit" class="logout-link" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">

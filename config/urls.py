@@ -21,3 +21,5 @@ urlpatterns = [
      path('notifications/', include('notifications.urls')),
 path("rentals/", include(("rentals.urls", "rentals"), namespace="rentals")),
 ]
+
+
