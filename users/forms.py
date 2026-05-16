@@ -5,6 +5,8 @@ from django.contrib.auth.forms import UserCreationForm
 User = get_user_model()
 
 
+#Walid 
+
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------

@@ -18,7 +18,7 @@ class Payment(models.Model):
     due_date   = models.DateField()
     paid_date  = models.DateField(null=True, blank=True)
     status     = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    month      = models.CharField(max_length=20)  # e.g. "April 2026"
+    month      = models.CharField(max_length=20)  
     notes      = models.TextField(blank=True)
 
     class Meta:

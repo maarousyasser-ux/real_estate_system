@@ -246,9 +246,13 @@ def dashboard_view(request):
 
     return render(request, "users/dashboard.html", context)
 
+
+
+
+
+
+
 # walid :
-
-
 
 # ---------------------------------------------------------------------------
 # Auth
@@ -272,7 +276,7 @@ def register_view(request):
 # Profile view  — handles all tab POST actions via hidden `tab` field
 # ---------------------------------------------------------------------------
 
-#yasser
+#Walid :
 
 @login_required
 def profile_view(request):
@@ -426,7 +430,7 @@ def _build_activity_log(user):
 # ---------------------------------------------------------------------------
 # Delete account
 # ---------------------------------------------------------------------------
-
+# walid :
 @login_required
 def delete_account_view(request):
     if request.method == "POST":
@@ -463,3 +467,7 @@ def maintenance_dashboard(request):
     else:
         qs = MaintenanceRequest.objects.filter(contract__agent=user)
     return render(request, "maintenance/dashboard.html", {"requests": qs})
+
+
+
+

@@ -20,6 +20,9 @@ urlpatterns = [
    path('messages/', views.messages_view, name='messages'),
    path('delete-account/', views.delete_account_view, name='delete_account'),
    
+   
+   
+   
 
 
 
