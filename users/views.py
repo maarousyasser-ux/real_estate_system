@@ -13,6 +13,10 @@ from notifications.models import Notification
 User = get_user_model()
 
 
+
+
+#yasser :
+
 # ---------------------------------------------------------------------------
 # Month helpers
 # ---------------------------------------------------------------------------
@@ -242,6 +246,9 @@ def dashboard_view(request):
 
     return render(request, "users/dashboard.html", context)
 
+# walid :
+
+
 
 # ---------------------------------------------------------------------------
 # Auth
@@ -264,6 +271,8 @@ def register_view(request):
 # ---------------------------------------------------------------------------
 # Profile view  — handles all tab POST actions via hidden `tab` field
 # ---------------------------------------------------------------------------
+
+#yasser
 
 @login_required
 def profile_view(request):
@@ -441,6 +450,8 @@ def messages_view(request):
 def community_view(request):
     return render(request, "community/feed.html")
 
+
+#yasser :
 
 @login_required
 def maintenance_dashboard(request):

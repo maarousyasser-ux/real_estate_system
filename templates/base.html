@@ -214,7 +214,6 @@
 
     <div class="sidebar-nav">
 
-
       {% if user.role == 'landlord' %}
         <div class="nav-section-label">Overview</div>
         <a href="{% url 'dashboard' %}" class="nav-item" data-path="/">
@@ -225,10 +224,7 @@
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
           Messages <span class="nav-badge-count">3</span>
         </a>
-        <a href="{% url 'community:feed' %}" class="nav-item">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
-          Community
-        </a>
+
         <div class="nav-section-label">Portfolio</div>
         <a href="{% url 'property_list' %}" class="nav-item" data-path="/properties/">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
@@ -261,8 +257,6 @@
           All Contracts
         </a>
         <div class="nav-section-label">Operations</div>
-
-        {# ── Landlord: sees ALL requests ── #}
         <a href="{% url 'maintenance:list' %}" class="nav-item" data-path="/maintenance/">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg>
           Maintenance
@@ -278,10 +272,7 @@
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
           Messages <span class="nav-badge-count">3</span>
         </a>
-        <a href="{% url 'community:feed' %}" class="nav-item" data-path="/community/">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
-          Community
-        </a>
+
         <div class="nav-section-label">Listings</div>
         <a href="{% url 'property_list' %}" class="nav-item" data-path="/properties/">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V6l6.5-4 6.5 4v7H2z"/></svg>
@@ -318,13 +309,10 @@
           Performance
         </a>
         <div class="nav-section-label">Operations</div>
-
-        {# ── Agent: sees ALL requests ── #}
         <a href="{% url 'maintenance:list' %}" class="nav-item" data-path="/maintenance/">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg>
           Maintenance
         </a>
-
 
       {% elif user.role == 'tenant' %}
         <div class="nav-section-label">My Home</div>
@@ -341,8 +329,6 @@
           Payments
         </a>
         <div class="nav-section-label">Support</div>
-
-        {# ── Tenant: sees their own requests; "My Requests" goes to list, "New Request" goes to create ── #}
         <a href="{% url 'maintenance:list' %}" class="nav-item" data-path="/maintenance/">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 2.5l-2 2-1.5-1.5 2-2a3 3 0 00-4 4L3 10a2 2 0 002 2l4.5-5a3 3 0 004-4.5z"/></svg>
           My Requests
@@ -352,14 +338,12 @@
           Submit Request
         </a>
 
-        <a href="{% url 'messages' %}" class="nav-item" data-path="/messages/">
+        {# FIX: use inbox URL instead of start_conversation — property context is not available in base template #}
+        <a href="{% url 'real_estate_messages:inbox' %}" class="nav-item" data-path="/messages/">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M1 4l7 5 7-5"/></svg>
           Messages <span class="nav-badge-count">3</span>
         </a>
-        <a href="{% url 'community:feed' %}" class="nav-item" data-path="/community/">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.8 2.2-5 5-5"/><circle cx="12" cy="5" r="2"/><path d="M10.5 9.3c.5-.2 1-.3 1.5-.3 2.2 0 4 1.8 4 4"/></svg>
-          Community
-        </a>
+
       {% endif %}
 
       <!-- Shared account — all roles -->
@@ -384,15 +368,9 @@
         <div class="avatar-circle">
           {{ user.username|first|upper }}{% if user.last_name %}{{ user.last_name|first|upper }}{% endif %}
         </div>
-      
         <div style="min-width:0;">
-          <div class="user-name">
-            {{ user.get_full_name|default:user.username }}
-          </div>
-      
-          <div class="user-role">
-            {{ user.role }}
-          </div>
+          <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+          <div class="user-role">{{ user.role }}</div>
         </div>
       </a>
       <form method="post" action="{% url 'logout' %}" style="margin-top:4px;">

@@ -5,12 +5,12 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from .models import Conversation, Message
-
-
 from notifications.models import Notification
+
 
 def get_user_notifications(user):
     return Notification.objects.filter(user=user).order_by("-created_at")
+
 
 User = get_user_model()
 
@@ -44,6 +44,7 @@ def inbox(request):
 def conversation(request, conv_id):
     conv = get_object_or_404(Conversation, id=conv_id, participants=request.user)
 
+    # Mark messages as read
     conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
 
     if request.method == 'POST':
@@ -55,7 +56,6 @@ def conversation(request, conv_id):
                 content=content,
             )
             conv.save()
-        # ✅ FIXED: use correct namespace
         return redirect('real_estate_messages:conversation', conv_id=conv.id)
 
     conversations = request.user.conversations.prefetch_related(
@@ -75,12 +75,15 @@ def conversation(request, conv_id):
     other_user = conv.participants.exclude(id=request.user.id).first()
     all_users  = User.objects.exclude(id=request.user.id).order_by('username')
 
+    # FIX: explicitly order messages by created_at so old messages appear in correct order
+    messages_list = conv.messages.select_related('sender').order_by('created_at')
+
     return render(request, 'users/messages.html', {
         'conv_data':     conv_data,
         'all_users':     all_users,
         'active_conv':   conv,
         'other_user':    other_user,
-        'messages_list': conv.messages.select_related('sender').all(),
+        'messages_list': messages_list,
     })
 
 
@@ -89,10 +92,10 @@ def start_conversation(request, user_id):
     other = get_object_or_404(User, id=user_id)
 
     if other == request.user:
-        return redirect('real_estate_messages:inbox')  # ✅ FIXED
+        return redirect('real_estate_messages:inbox')
 
     conv, _ = Conversation.get_or_create_between(request.user, other)
-    return redirect('real_estate_messages:conversation', conv_id=conv.id)  # ✅ FIXED
+    return redirect('real_estate_messages:conversation', conv_id=conv.id)
 
 
 @login_required
@@ -125,8 +128,17 @@ def poll_messages(request, conv_id):
     conv     = get_object_or_404(Conversation, id=conv_id, participants=request.user)
     since_id = int(request.GET.get('since', 0))
 
-    new_msgs = conv.messages.filter(id__gt=since_id).select_related('sender')
-    new_msgs.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    # FIX: evaluate queryset into a list first, then update — avoids lazy queryset issues
+    new_msgs = list(
+        conv.messages.filter(id__gt=since_id)
+                     .select_related('sender')
+                     .order_by('created_at')  # FIX: ensure chronological order
+    )
+
+    # FIX: update read status using explicit ID list after evaluation
+    unread_ids = [m.id for m in new_msgs if not m.is_read and m.sender != request.user]
+    if unread_ids:
+        Message.objects.filter(id__in=unread_ids).update(is_read=True)
 
     data = [{
         'id':       m.id,

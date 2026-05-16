@@ -356,15 +356,22 @@
   const CSRF    = '{{ csrf_token }}';
   const CONV_ID = {% if active_conv %}{{ active_conv.id }}{% else %}null{% endif %};
 
-  // Scroll to bottom
+  // Scroll to bottom on load
   const chatBox = document.getElementById('chatMessages');
   if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
-  // Track last message id for polling
+  // FIX: correctly initialize lastMsgId from rendered messages
+  // This ensures polling only fetches NEW messages after what's already shown
   let lastMsgId = 0;
   if (chatBox) {
     const rows = chatBox.querySelectorAll('[id^="msg-"]');
-    if (rows.length) lastMsgId = parseInt(rows[rows.length-1].id.replace('msg-',''));
+    if (rows.length) {
+      // Get the highest message id from all rendered messages
+      rows.forEach(row => {
+        const id = parseInt(row.id.replace('msg-', ''));
+        if (id > lastMsgId) lastMsgId = id;
+      });
+    }
   }
 
   // ── Send ──
@@ -383,7 +390,7 @@
     if (data.error) return;
 
     appendMsg({ id: data.id, content: data.content, is_mine: true, time: data.created_at });
-    lastMsgId = data.id;
+    lastMsgId = Math.max(lastMsgId, data.id);
   }
 
   document.getElementById('msgInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
@@ -395,35 +402,42 @@
     const row = document.createElement('div');
     row.id = `msg-${m.id}`;
     row.className = `msg-row ${m.is_mine ? 'mine' : ''}`;
-    const av = m.is_mine ? '' : `<div class="msg-bubble-av" style="background:#3B6D11;">${m.initials||'?'}</div>`;
-    row.innerHTML = `${av}<div><div class="msg-bubble">${esc(m.content)}</div><div class="msg-time">${m.time}</div></div>`;
+    const av = m.is_mine ? '' : `<div class="msg-bubble-av" style="background:#3B6D11;">${esc(m.initials || '?')}</div>`;
+    row.innerHTML = `${av}<div><div class="msg-bubble">${esc(m.content)}</div><div class="msg-time">${esc(m.time)}</div></div>`;
     chatBox.appendChild(row);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
 
-  // ── Poll every 3s ──
+  // ── Poll every 3s for new messages ──
   if (CONV_ID) {
     setInterval(async () => {
-      const res  = await fetch(`/messages/poll/${CONV_ID}/?since=${lastMsgId}`);
-      const data = await res.json();
-      data.messages.forEach(m => {
-        if (!document.getElementById(`msg-${m.id}`)) {
-          appendMsg(m);
-          lastMsgId = Math.max(lastMsgId, m.id);
-        }
-      });
+      try {
+        const res  = await fetch(`/messages/poll/${CONV_ID}/?since=${lastMsgId}`);
+        const data = await res.json();
+        data.messages.forEach(m => {
+          if (!document.getElementById(`msg-${m.id}`)) {
+            appendMsg(m);
+            lastMsgId = Math.max(lastMsgId, m.id);
+          }
+        });
+      } catch (err) {
+        // silently ignore network errors during polling
+        console.warn('Poll error:', err);
+      }
     }, 3000);
   }
 
- 
+  // ── New conversation picker ──
   function togglePicker() { document.getElementById('userPicker').classList.toggle('open'); }
   document.addEventListener('click', e => {
     if (!e.target.closest('.new-conv-wrap')) document.getElementById('userPicker')?.classList.remove('open');
   });
 
-
+  // ── Sidebar search ──
   document.getElementById('convSearch')?.addEventListener('input', function() {
     const q = this.value.toLowerCase();
     document.querySelectorAll('.conv-item').forEach(el => {
